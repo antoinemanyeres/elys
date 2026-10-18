@@ -611,8 +611,11 @@
         ${editing ? `<div class="editing-banner">${t('s.editing')} ${gradePill(editing.color, editing.subGrade)}<button class="link" data-action="cancel-edit">${t('s.cancel')}</button></div>` : `<h3>${t('s.new')}</h3>`}
         <label class="field"><span>${t('s.wall')}</span><select data-change="ed-sector" ${editing ? 'disabled' : ''}>${SECTORS.map((s) =>
           `<option value="${s.id}" ${s.id === ed.sectorId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
-        ${editing ? '' : `<label class="btn ghost block">${t('s.upload')}
-          <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
+        ${editing ? '' : `<div class="two upload-row">
+          <label class="btn ghost">${t('s.camera')}
+            <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
+          <label class="btn ghost">${t('s.gallery')}
+            <input type="file" accept="image/*" data-change="ed-photo" hidden></label></div>
           <p class="muted small">${t('s.uploadNote')}</p>`}
       </section>
 

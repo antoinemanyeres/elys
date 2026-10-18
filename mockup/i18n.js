@@ -56,7 +56,7 @@ const I18N = {
     'p.reset': 'Reset demo data', 'p.resetConfirm': 'Reset all demo data?',
 
     's.new': 'Set a new boulder', 's.editing': 'Editing', 's.cancel': 'Cancel', 's.wall': 'Wall',
-    's.upload': 'Upload new wall photo', 's.uploadNote': 'A new photo archives the boulders currently on this wall.',
+    's.camera': 'Take a photo', 's.gallery': 'From gallery', 's.uploadNote': 'A new wall photo archives the boulders currently on this wall.',
     's.holdType': 'Hold type', 's.outline': 'Outline', 's.auto': 'Auto-detect', 's.circle': 'Circle',
     's.sensitivity': 'Sensitivity', 's.circleSize': 'Circle size', 's.undo': 'Undo', 's.clear': 'Clear',
     's.detecting': 'Detecting hold…', 's.tapHint': 'Tap a hold to outline it · tap an outline to remove it',
@@ -132,7 +132,7 @@ const I18N = {
     'p.reset': 'Réinitialiser la démo', 'p.resetConfirm': 'Réinitialiser toutes les données de démo ?',
 
     's.new': 'Ouvrir un nouveau bloc', 's.editing': 'Modification', 's.cancel': 'Annuler', 's.wall': 'Mur',
-    's.upload': 'Nouvelle photo du mur', 's.uploadNote': 'Une nouvelle photo archive les blocs actuels de ce mur.',
+    's.camera': 'Prendre une photo', 's.gallery': 'Depuis la galerie', 's.uploadNote': 'Une nouvelle photo du mur archive les blocs actuels de ce mur.',
     's.holdType': 'Type de prise', 's.outline': 'Contour', 's.auto': 'Détection auto', 's.circle': 'Rond',
     's.sensitivity': 'Sensibilité', 's.circleSize': 'Taille du rond', 's.undo': 'Retour', 's.clear': 'Effacer',
     's.detecting': 'Détection de la prise…', 's.tapHint': 'Touchez une prise pour l’entourer · touchez un contour pour le retirer',
@@ -208,7 +208,7 @@ const I18N = {
     'p.reset': 'Demo zurücksetzen', 'p.resetConfirm': 'Alle Demo-Daten zurücksetzen?',
 
     's.new': 'Neuen Boulder schrauben', 's.editing': 'Bearbeiten', 's.cancel': 'Abbrechen', 's.wall': 'Wand',
-    's.upload': 'Neues Wandfoto hochladen', 's.uploadNote': 'Ein neues Foto archiviert die aktuellen Boulder dieser Wand.',
+    's.camera': 'Foto aufnehmen', 's.gallery': 'Aus der Galerie', 's.uploadNote': 'Ein neues Wandfoto archiviert die aktuellen Boulder dieser Wand.',
     's.holdType': 'Grifftyp', 's.outline': 'Umriss', 's.auto': 'Automatisch', 's.circle': 'Kreis',
     's.sensitivity': 'Empfindlichkeit', 's.circleSize': 'Kreisgröße', 's.undo': 'Rückgängig', 's.clear': 'Löschen',
     's.detecting': 'Griff wird erkannt…', 's.tapHint': 'Tippe auf einen Griff zum Umranden · tippe auf einen Umriss zum Entfernen',
