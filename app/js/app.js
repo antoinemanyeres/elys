@@ -332,11 +332,15 @@
         return `<g class="map-room" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}"><polygon points="${polyPoints(s.poly)}"/>${mapLabel(s, esc(t(s.name)))}</g>`;
       }
       const n = counts[s.id] || 0;
-      const [cx, cy] = centroid(s.poly);
+      // Badge sits right after the (rotated) name, kept upright; width is estimated from the label size.
+      const [lx, ly, rot = 0, size = 22] = s.label || [...centroid(s.poly), 0, 22];
+      const r = Math.max(10, size * 0.6);
+      const off = s.name.length * size * 0.33 + r + 3;
+      const cx = lx + off * Math.cos(rot * Math.PI / 180), cy = ly + off * Math.sin(rot * Math.PI / 180);
       return `<g class="zone ${s.id === selectedId ? 'selected' : ''}" data-action="select-sector" data-id="${s.id}" style="--area:${AREA_COLORS[s.area]}">
         <polygon class="hit" points="${polyPoints(s.poly)}"/><polygon points="${polyPoints(s.poly)}"/>
         ${mapLabel(s, esc(s.name))}
-        ${n ? `<circle cx="${cx}" cy="${cy}" r="15"></circle><text class="count" x="${cx}" y="${cy}">${n}</text>` : ''}
+        ${n ? `<circle cx="${cx}" cy="${cy}" r="${r}"></circle><text class="count" x="${cx}" y="${cy}" style="font-size:${r * 1.05}px">${n}</text>` : ''}
       </g>`;
     }).join('');
     return `<div class="map-wrap ${ui.mapZoom ? 'zoomed' : ''}">
