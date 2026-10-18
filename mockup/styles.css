@@ -201,6 +201,7 @@ nav.tabs button.active { background: var(--accent); color: var(--accent-ink); }
 .row:last-child { border-bottom: 0; }
 .row:hover { background: #1a1f29; }
 .row.plain { padding: 10px 0; background: none; cursor: default; }
+.row-actions { display: flex; gap: 6px; margin-top: 8px; }
 .row.me { background: rgba(200, 255, 61, .08); }
 .mid { flex: 1; min-width: 0; }
 .line1 { margin-bottom: 4px; }

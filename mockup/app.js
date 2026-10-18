@@ -693,9 +693,11 @@
 
       <section class="card">
         <h3>${t('s.onWall', { n: onWall.length })}</h3>
-        ${onWall.map((b) => `<div class="row plain">${thumb(b, 48)}<div class="mid">${gradePill(b.color, b.subGrade)}<div>${tagList(b.tags)}</div></div>
-          <button class="btn small" data-action="edit-boulder" data-id="${b.id}">${t('s.edit')}</button>
-          <button class="btn small ghost" data-action="archive-boulder" data-id="${b.id}">${t('s.archive')}</button></div>`).join('') || `<p class="muted small">${t('s.noBoulders')}</p>`}
+        ${onWall.map((b) => `<div class="row plain">${thumb(b, 48)}<div class="mid">${gradePill(b.color, b.subGrade)}<div>${tagList(b.tags)}</div>
+          <div class="row-actions">
+            <button class="btn small" data-action="edit-boulder" data-id="${b.id}">${t('s.edit')}</button>
+            <button class="btn small ghost" data-action="archive-boulder" data-id="${b.id}">${t('s.archive')}</button>
+            <button class="btn small ghost danger" data-action="delete-boulder" data-id="${b.id}">${t('s.delete')}</button></div></div></div>`).join('') || `<p class="muted small">${t('s.noBoulders')}</p>`}
       </section>`;
   }
 
@@ -914,6 +916,18 @@
     },
     'archive-boulder': (id) => {
       state.boulders.find((x) => x.id === id).closesAt = isoDate(Date.now() - DAY);
+      if (ui.editor.editingId === id) ui.editor = newEditor(ui.editor.sectorId);
+      save();
+    },
+    // Unlike archiving, deleting also removes the sends, votes, likes and comments of the boulder.
+    'delete-boulder': (id) => {
+      if (!confirm(t('s.deleteConfirm'))) return false;
+      const keep = (x) => x.boulderId !== id;
+      state.boulders = state.boulders.filter((b) => b.id !== id);
+      state.sends = state.sends.filter(keep);
+      state.votes = state.votes.filter(keep);
+      state.likes = state.likes.filter(keep);
+      state.comments = state.comments.filter(keep);
       if (ui.editor.editingId === id) ui.editor = newEditor(ui.editor.sectorId);
       save();
     },
