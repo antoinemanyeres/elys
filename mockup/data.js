@@ -169,5 +169,10 @@ function seedState() {
     { id: 'c3', userId: 'u_alex', boulderId: 'b8', text: 'Static is way harder than it looks!', date: now - DAY },
   ];
 
-  return { version: 3, lang: 'en', currentUserId: null, users, wallPhotos, boulders, sends, votes, likes, comments };
+  const feedback = [
+    { id: 'f1', userId: 'u_mia', type: 'idea', text: 'It would be great to filter the boulders I liked.', date: now - 2 * DAY },
+    { id: 'f2', userId: 'u_paul', type: 'bug', text: 'The map is a bit small on my phone.', date: now - DAY },
+  ];
+
+  return { version: 3, lang: 'en', currentUserId: null, users, wallPhotos, boulders, sends, votes, likes, comments, feedback };
 }

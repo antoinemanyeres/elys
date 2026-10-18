@@ -9,6 +9,21 @@
 
   let state = load();
   setLang(state.lang);
+  state.feedback = state.feedback || [];
+
+  // Theme preference: 'system' follows the phone setting, otherwise 'dark' or 'light'.
+  const lightQuery = window.matchMedia('(prefers-color-scheme: light)');
+  const resolvedTheme = () => {
+    const pref = state.theme || 'system';
+    return pref === 'system' ? (lightQuery.matches ? 'light' : 'dark') : pref;
+  };
+  function applyTheme() {
+    const theme = resolvedTheme();
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#f5f6fb' : '#11132c';
+  }
+  applyTheme();
+  lightQuery.addEventListener('change', () => { applyTheme(); render(); });
 
   const currentPart = (sectorId) => { const first = sectorParts(sectorId)[0]; return first ? first.part || 1 : 'new'; };
   const newEditor = (sectorId = 'welle') => ({
@@ -104,6 +119,9 @@
     back: '<path d="M15 5 8 12l7 7"/>',
     heart: '<path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9Z"/>',
     check: '<path d="m5 12 5 5 9-10"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+    chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     flash: '<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>',
   };
   const icon = (name) => `<svg class="ico ico-${name}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -231,17 +249,21 @@
       <text class="static-label" x="70" y="560">${t('map.fitness')}</text>
       <rect class="static" x="122" y="522" width="196" height="76" rx="10"></rect>
       <text class="static-label" x="220" y="560">${t('map.entrance')}</text>
-      <text class="gym-name" x="510" y="320">elys</text>
+      <text class="gym-name" x="510" y="320">ELYS</text>
       ${zones}
     </svg>`;
   }
 
   // ---------- Layout ----------
-  const brand = () => `<div class="brand">elys<span>.</span><small>${t('brand.sub')}</small></div>`;
+  const brand = () => `<div class="brand"><span class="logo" role="img" aria-label="ELYS Boulderloft"></span>
+    <span class="wordmark">ELYS<small>Boulderloft</small></span></div>`;
+
+  const themeToggle = () => `<button class="icon-chip" data-action="toggle-theme" aria-label="${t('p.toggleTheme')}">
+    ${icon(resolvedTheme() === 'light' ? 'moon' : 'sun')}</button>`;
 
   function header() {
     return `<header class="top">${brand()}
-      <div class="head-right">${langSelect('lang-chip')}
+      <div class="head-right">${themeToggle()}${langSelect('lang-chip')}
         <button class="avatar sm" data-action="tab" data-id="profile" aria-label="${t('tab.profile')}">${esc(me().name[0])}</button></div>
     </header>`;
   }
@@ -257,7 +279,7 @@
   function loginView() {
     const signup = ui.auth.mode === 'signup';
     return `<div class="login">
-      <div class="login-top">${langSelect('lang-chip')}</div>
+      <div class="login-top">${themeToggle()}${langSelect('lang-chip')}</div>
       <div class="login-hero">${brand()}<p>${t('l.tagline')}</p></div>
       <div class="card">
         <button class="btn google block" data-action="auth-google">${GOOGLE_LOGO}${t('l.google')}</button>
@@ -367,7 +389,8 @@
           <div class="legend"><span><i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}</span><span><i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}</span><span class="muted">${t('b.tapBoulder')}</span></div></section>`
         : sector ? `<section class="card empty">${t('b.noPhoto')}</section>` : ''}
       <div class="list-head">${visible.length === 1 ? t('b.count1') : t('b.countN', { n: visible.length })}</div>
-      <div class="list">${visible.map(boulderRow).join('') || `<p class="empty">${t('b.noMatch')}</p>`}</div>`;
+      <div class="list">${visible.map(boulderRow).join('') || `<p class="empty">${t('b.noMatch')}</p>`}</div>
+      ${feedbackLink()}`;
   }
 
   const voteBlock = (b) => {
@@ -586,12 +609,46 @@
   function settingsCard() {
     const users = state.users.map((u) =>
       `<option value="${u.id}" ${u.id === state.currentUserId ? 'selected' : ''}>${esc(u.name)}${u.role === 'setter' ? ' · ' + t('p.setter') : ''}</option>`).join('');
+    const themeOpt = (v, key) => `<option value="${v}" ${(state.theme || 'system') === v ? 'selected' : ''}>${t(key)}</option>`;
     return `<section class="card">
       <h3>${t('p.settings')}</h3>
       <label class="field"><span>${t('p.language')}</span>${langSelect()}</label>
+      <label class="field"><span>${t('p.theme')}</span><select data-change="theme">
+        ${themeOpt('system', 'p.themeSystem')}${themeOpt('dark', 'p.themeDark')}${themeOpt('light', 'p.themeLight')}</select></label>
       <label class="field"><span>${t('p.demoUser')}</span><select data-change="switch-user">${users}</select></label>
       <button class="btn ghost block" data-action="logout">${t('p.logout')}</button>
       <button class="btn ghost block danger" data-action="reset-demo">${t('p.reset')}</button>
+    </section>${feedbackLink()}`;
+  }
+
+  // ---------- Feedback ----------
+  const feedbackLink = () => `<button class="feedback-link" data-action="open-feedback">${icon('chat')} ${t('g.link')}</button>`;
+
+  function feedbackModal() {
+    const f = ui.feedback;
+    const type = (id) => `<button class="chip ${f.type === id ? 'on' : ''}" data-action="fb-type" data-id="${id}">${t('g.' + id)}</button>`;
+    const body = f.sent
+      ? `<p class="thanks">${icon('check')} ${t('g.thanks')}</p>
+         <button class="btn primary block" data-action="close-feedback">${t('m.close')}</button>`
+      : `<p class="muted small">${t('g.text')}</p>
+         <div>${type('idea')}${type('bug')}${type('other')}</div>
+         <textarea id="feedback-input" maxlength="1000" placeholder="${t('g.placeholder')}"></textarea>
+         ${f.error ? `<p class="notice">${t(f.error)}</p>` : ''}
+         <button class="btn primary block" data-action="send-feedback">${t('g.send')}</button>`;
+    return `<div class="modal center-modal" data-action="close-feedback"><div class="dialog">
+      <div class="dialog-head"><h3>${t('g.title')}</h3>
+        <button class="link" data-action="close-feedback" aria-label="${t('m.close')}">✕</button></div>
+      ${body}</div></div>`;
+  }
+
+  function feedbackInbox() {
+    const list = [...state.feedback].sort((a, b) => b.date - a.date);
+    return `<section class="card">
+      <h3>${t('g.inbox')} (${list.length})</h3>
+      ${list.map((f) => `<div class="comment"><span class="avatar sm">${esc(userName(f.userId)[0])}</span>
+        <div><b>${esc(userName(f.userId))}</b> <span class="mini-tag">${t('g.' + f.type)}</span>
+          <span class="muted small">${fmtDate(f.date)}</span><p>${esc(f.text)}</p></div></div>`).join('')
+        || `<p class="muted small">${t('g.empty')}</p>`}
     </section>`;
   }
 
@@ -605,7 +662,7 @@
           <div><b>${mine.reduce((s, b) => s + sendsOf(b).length, 0)}</b><span>${t('p.totalSends')}</span></div></div></section>
         ${feedbackCard()}
         <div class="list-head">${t('p.myBoulders')}</div>
-        <div class="list">${mine.filter(isActive).map(boulderRow).join('')}</div>${settingsCard()}`;
+        <div class="list">${mine.filter(isActive).map(boulderRow).join('')}</div>${feedbackInbox()}${settingsCard()}`;
     }
     const data = rankingData();
     const rank = data.findIndex((d) => d.u.id === u.id);
@@ -717,12 +774,13 @@
     const zoomScroll = oldZoom ? [oldZoom.scrollLeft, oldZoom.scrollTop] : null;
     root.innerHTML = header() + `<main>${views[ui.tab]()}</main>` + tabs()
       + (ui.boulderId ? boulderModal() : ui.quickId ? quickSheet() : '')
+      + (ui.feedback ? feedbackModal() : '')
       + (ui.cropper ? cropperView() : '');
     const sheet = document.querySelector('.sheet');
     if (sheet) sheet.scrollTop = sheetScroll;
     const zoom = document.querySelector('.zoombox');
     if (zoom && zoomScroll) [zoom.scrollLeft, zoom.scrollTop] = zoomScroll;
-    document.body.classList.toggle('modal-open', !!ui.boulderId || !!ui.cropper);
+    document.body.classList.toggle('modal-open', !!ui.boulderId || !!ui.cropper || !!ui.feedback);
     ui.lastModalId = ui.boulderId;
     ui.lastQuickId = ui.quickId;
   }
@@ -794,6 +852,20 @@
       if (b.sectorId === ui.sectorId && i >= 0) ui.part = i + 1;
     },
     'close-quick': () => { ui.quickId = null; ui.votePromptId = null; },
+    'toggle-theme': () => { state.theme = resolvedTheme() === 'light' ? 'dark' : 'light'; applyTheme(); save(); },
+    'open-feedback': () => { ui.feedback = { type: 'idea', sent: false, error: '' }; },
+    'close-feedback': (id, e, el) => {
+      if (el.classList.contains('modal') && e.target !== el) return false;
+      ui.feedback = null;
+    },
+    'fb-type': (id) => { ui.feedback.type = id; },
+    'send-feedback': () => {
+      const text = document.getElementById('feedback-input').value.trim();
+      if (!text) { ui.feedback.error = 'g.errEmpty'; return; }
+      state.feedback.push({ id: 'f' + Date.now(), userId: state.currentUserId, type: ui.feedback.type, text, date: Date.now() });
+      ui.feedback = { ...ui.feedback, sent: true, error: '' };
+      save();
+    },
     'profile-color': (id) => { ui.profileColor = ui.profileColor === id ? null : id; },
     'vote-done': () => {
       if (ui.quickId === ui.votePromptId) ui.quickId = null;
@@ -949,6 +1021,7 @@
 
   const changes = {
     'lang': (v) => { state.lang = v; setLang(v); save(); },
+    'theme': (v) => { state.theme = v; applyTheme(); save(); },
     'switch-user': (v) => {
       state.currentUserId = v;
       if (ui.tab === 'set' && !isSetter()) ui.tab = 'boulders';
@@ -1086,14 +1159,14 @@
   document.addEventListener('pointercancel', () => { cropDrag = null; });
 
   // Navigation (tab, boulder details, quick sheet) is mirrored in browser history so the phone back button works.
-  const navState = () => ({ tab: ui.tab, boulderId: ui.boulderId, quickId: ui.quickId });
+  const navState = () => ({ tab: ui.tab, boulderId: ui.boulderId, quickId: ui.quickId, feedback: !!ui.feedback });
 
   function syncHistory(before) {
     const after = navState();
     const replace = ui.navReplace;
     ui.navReplace = false;
     if (JSON.stringify(after) === JSON.stringify(before)) return;
-    const closing = after.tab === before.tab && !after.boulderId && !after.quickId;
+    const closing = after.tab === before.tab && !after.boulderId && !after.quickId && !after.feedback;
     if (closing) history.back();
     else if (replace) history.replaceState(after, '');
     else history.pushState(after, '');
@@ -1104,6 +1177,7 @@
     ui.tab = s.tab === 'set' && state.currentUserId && !isSetter() ? 'boulders' : s.tab;
     ui.boulderId = s.boulderId;
     ui.quickId = s.quickId;
+    if (!s.feedback) ui.feedback = null;
     ui.votePromptId = null;
     render();
   });
