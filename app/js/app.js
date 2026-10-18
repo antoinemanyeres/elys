@@ -345,8 +345,7 @@
     }).join('');
     return `<div class="map-wrap ${ui.mapZoom ? 'zoomed' : ''}">
       <button class="icon-chip map-zoom" data-action="map-zoom" aria-label="${t('map.zoom')}">${ui.mapZoom ? '\u2212' : '+'}</button>
-      <div class="map-scroll"><svg class="map" viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="${t('map.title')}">
-        <text class="gym-name" x="${vx + vw * 0.62}" y="${vy + vh * 0.42}">ELYS</text>${layers}</svg></div>
+      <div class="map-scroll"><svg class="map" viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="${t('map.title')}">${layers}</svg></div>
     </div>`;
   }
 
@@ -501,8 +500,7 @@
       ${thumb(b)}
       <div class="mid">
         <div class="line1">${gradePill(b.color, b.subGrade)}${isNew(b) ? `<span class="new">${t('new')}</span>` : ''}</div>
-        <div class="muted small">${esc(sectorLabel(b))} · ${t('b.holds', { n: b.holds.length })}</div>
-        <div>${tagList(b.tags.slice(0, 2))}</div>
+        <div class="muted small">${esc(sectorLabel(b))}</div>
       </div>
       <div class="side">
         <div class="pts">${points(b)}<small>${t('pts')}</small></div>
@@ -531,7 +529,7 @@
         ${gymMap(ui.sectorId)}
         <div class="sector-title">${sector
           ? `<h2>${esc(sector.name)}</h2><button class="link" data-action="select-sector" data-id="${sector.id}">${t('b.wholeGym')}</button>`
-          : `<h2>${t('b.wholeGym')}</h2><span class="muted small">${t('b.tapMap')}</span>`}</div>
+          : `<h2>${t('b.wholeGym')}</h2>`}</div>
         ${plan ? `<p class="plan-note">${t('pl.nextReset', { date: fmtDate(plan.planned_on) })}</p>` : ''}
         ${sector && isSetter() ? `<button class="btn primary block set-here" data-action="set-sector" data-id="${sector.id}">${icon('set')} ${t('b.setHere', { name: esc(sector.name) })}</button>` : ''}
         <div class="colorbar">${COLORS.map((c) =>
@@ -544,7 +542,7 @@
         </div>
       </section>
       ${photo ? `<section class="card flush">${partTabs}${wall(photo, visible.filter((b) => b.photoId === photo.id), { highlight: ui.quickId, action: 'quick-boulder' })}
-          <div class="legend"><span><i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}</span><span><i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}</span><span class="muted">${t('b.tapBoulder')}</span></div></section>`
+          <div class="legend"><span><i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}</span><span><i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}</span></div></section>`
         : sector ? `<section class="card empty">${t('b.noPhoto')}</section>` : ''}
       <div class="list-head">${visible.length === 1 ? t('b.count1') : t('b.countN', { n: visible.length })}</div>
       <div class="list">${visible.map(boulderRow).join('') || `<p class="empty">${t('b.noMatch')}</p>`}</div>
@@ -661,7 +659,6 @@
           ${isSetter() ? '' : projectBtn(b)}
           <button class="btn icon-btn" data-action="share" data-id="${b.id}" aria-label="${t('sh.share')}">${icon('share')}</button>
         </div>
-        ${isSetter() ? '' : `<p class="hint">${t('m.flashHint', { pct: flashPct })}</p>`}
         ${ui.votePromptId === b.id ? `<section class="card">${votePrompt(b)}</section>` : ''}
 
         <section class="card">
@@ -691,7 +688,6 @@
             <input id="video-input" type="url" inputmode="url" placeholder="${t('v.placeholder')}">
             <button class="btn ghost" type="submit">${t('v.add')}</button>
           </form>
-          <p class="muted small">${t('v.note')}</p>
         </section>
 
         <section class="card">
@@ -721,40 +717,24 @@
   }
 
   // ---------- Ranking ----------
-  function histogram(perColor) {
-    const max = Math.max(1, ...perColor);
-    return `<span class="histo">${perColor.map((n, i) =>
-      `<i style="height:${3 + (n / max) * 23}px;background:${COLORS[i].hex}" title="${colorLabel(COLORS[i].id)}: ${n}"></i>`).join('')}</span>`;
-  }
-
   function rankingView() {
     ensureRanking().catch((e) => toast(errMsg(e), true));
     const rows = ui.ranking;
     const scopeOpts = [`<option value="current" ${ui.rankScope === 'current' ? 'selected' : ''}>${t('r.current')}</option>`]
       .concat(store.seasons.map((s) => `<option value="${s.id}" ${ui.rankScope === s.id ? 'selected' : ''}>${esc(s.name)}</option>`)).join('');
     const season = store.seasons.find((s) => s.id === ui.rankScope);
-    const podium = (rows || []).slice(0, 3);
-    return `<section class="card rank-head">
-        <label class="field"><span>${t('r.scope')}</span><select data-change="rank-scope">${scopeOpts}</select></label>
-        <p class="muted small">${season ? t('r.seasonNote', { from: fmtDate(season.starts_on), to: fmtDate(season.ends_on) }) : t('r.note')}</p>
-      </section>
+    return `<div class="rank-head">
+        <select class="select-full" data-change="rank-scope" aria-label="${t('r.scope')}">${scopeOpts}</select>
+        ${season ? `<p class="muted small">${t('r.seasonNote', { from: fmtDate(season.starts_on), to: fmtDate(season.ends_on) })}</p>` : ''}
+      </div>
       ${!rows ? '<p class="empty">\u2026</p>' : !rows.length ? `<p class="empty">${t('r.empty')}</p>` : `
-      <div class="podium">${[1, 0, 2].map((i) => podium[i] ? `<div class="p${i + 1}">
-        <span class="avatar lg">${esc(podium[i].name[0])}</span><b>${esc(podium[i].name)}</b><span>${podium[i].points} ${t('pts')}</span><div class="step">${i + 1}</div></div>` : '').join('')}</div>
       <div class="list">${rows.map((d, i) => `<div class="row rank ${d.user_id === store.uid ? 'me' : ''}">
         <span class="pos">${i + 1}</span><span class="avatar">${esc(d.name[0])}</span>
         <div class="mid"><b>${esc(d.name)}</b><div class="small muted">${t('b.sends', { n: d.sends })}${d.flashes ? ` · <span class="flash-mark">${icon('flash')}</span>${d.flashes}` : ''}</div></div>
-        ${histogram(d.per_color)}<div class="pts">${d.points}<small>${t('pts')}</small></div>
+        <div class="pts">${d.points}<small>${t('pts')}</small></div>
       </div>`).join('')}</div>`}
       ${me().hide_from_ranking ? `<p class="hint">${t('r.youHidden')}</p>` : ''}
-      ${isSetter() ? seasonsCard() : ''}
-      <section class="card">
-        <h3>${t('r.how')}</h3>
-        <p class="muted small">${t('r.howText', { pct: flashPct })}</p>
-        <table class="points-table"><tr><th></th>${[1, 2, 3, 4, 5].map((n) => `<th>${n}</th>`).join('')}</tr>
-          ${COLORS.map((c) => `<tr><td><i class="sw" style="background:${c.hex}"></i>${colorLabel(c.id)}</td>${[1, 2, 3, 4, 5].map((n) => `<td>${pointsFor(c.id, n)}</td>`).join('')}</tr>`).join('')}
-        </table>
-      </section>`;
+      ${isSetter() ? seasonsCard() : ''}`;
   }
 
   function seasonsCard() {
@@ -839,7 +819,7 @@
         const on = b.test(sum);
         return `<div class="badge-item ${on ? 'on' : ''}" title="${esc(t('bd.' + b.id + '.d'))}">
           <span class="medal" ${b.color ? `style="--medal:${b.color}"` : ''}>${b.mark}</span>
-          <b>${t('bd.' + b.id + '.t')}</b><small>${t('bd.' + b.id + '.d')}</small></div>`;
+          <b>${t('bd.' + b.id + '.t')}</b></div>`;
       }).join('')}</div>
     </section>`;
   }
@@ -851,7 +831,7 @@
     const bars = COLORS.map((c, i) => `<button class="cbar ${sel === c.id ? 'on' : ''} ${sel && sel !== c.id ? 'faded' : ''}"
         data-action="profile-color" data-id="${c.id}" aria-label="${colorLabel(c.id)}: ${perColor[i]}">
         <span>${perColor[i]}</span><i style="height:${4 + (perColor[i] / max) * 56}px;background:${c.hex}"></i></button>`).join('');
-    if (!sel) return `<div class="cbars">${bars}</div><p class="muted small">${t('p.tapColor')}</p>`;
+    if (!sel) return `<div class="cbars">${bars}</div>`;
     const onWalls = activeBoulders().filter((b) => b.color === sel);
     const rows = [1, 2, 3, 4, 5].map((n) => {
       const all = onWalls.filter((b) => b.subGrade === n);
