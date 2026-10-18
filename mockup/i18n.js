@@ -29,7 +29,7 @@ const I18N = {
     'm.repeats': 'Repeats', 'm.likes': 'Likes', 'm.comments': 'Comments',
     'm.edit': 'Edit holds & grade', 'm.markSent': 'Mark as sent', 'm.sent': 'Sent', 'm.flash': 'Flash', 'm.flashed': 'Flashed',
     'm.flashHint': 'Flash = sent on the first try: +{pct}% points.',
-    'm.grade': 'Grade', 'm.setterGrade': 'Setter grade', 'm.consensus': "Climbers' consensus",
+    'm.grade': 'Grade', 'm.setterGrade': 'Setter grade', 'm.consensus': "Climbers' grade",
     'm.votes': '{n} votes', 'm.noVotes': 'No votes yet', 'm.yourVote': 'Your vote',
     'm.voteHint': 'Mark the boulder as sent to vote for its grade.',
     'm.info': 'Info', 'm.noTags': 'No style tags', 'm.opened': 'Opened', 'm.closes': 'Closes', 'm.inDays': 'in {n} days',
@@ -46,7 +46,7 @@ const I18N = {
     'r.how': 'How points work',
     'r.howText': 'Points are fixed by the setter grade. Each color is worth about twice the previous one, and sub-grades climb smoothly toward the next color. A flash earns {pct}% extra.',
 
-    'fb.title': 'Grade feedback', 'fb.text': "Boulders where climbers' consensus differs from the setter grade (3+ votes).",
+    'fb.title': 'Grade feedback', 'fb.text': "Boulders where the climbers' grade differs from the setter grade (3+ votes).",
     'fb.apply': 'Apply', 'fb.none': "All grades match the climbers' feeling.",
 
     'p.setter': 'Setter', 'p.set': 'Set', 'p.onWalls': 'On the walls', 'p.totalSends': 'Total sends',
@@ -111,7 +111,7 @@ const I18N = {
     'm.repeats': 'Répétitions', 'm.likes': 'J’aime', 'm.comments': 'Commentaires',
     'm.edit': 'Modifier prises et cotation', 'm.markSent': 'Marquer réussi', 'm.sent': 'Réussi', 'm.flash': 'Flash', 'm.flashed': 'Flashé',
     'm.flashHint': 'Flash = réussi du premier coup : +{pct} % de points.',
-    'm.grade': 'Cotation', 'm.setterGrade': 'Cotation ouvreur', 'm.consensus': 'Avis des grimpeurs',
+    'm.grade': 'Cotation', 'm.setterGrade': 'Cotation ouvreur', 'm.consensus': 'Cotation grimpeurs',
     'm.votes': '{n} votes', 'm.noVotes': 'Pas encore de votes', 'm.yourVote': 'Votre vote',
     'm.voteHint': 'Marquez le bloc comme réussi pour voter sa cotation.',
     'm.info': 'Infos', 'm.noTags': 'Aucun style', 'm.opened': 'Ouvert le', 'm.closes': 'Démontage', 'm.inDays': 'dans {n} jours',
@@ -128,7 +128,7 @@ const I18N = {
     'r.how': 'Calcul des points',
     'r.howText': 'Les points dépendent de la cotation ouvreur. Chaque couleur vaut environ le double de la précédente, et la sous-cotation progresse vers la couleur suivante. Un flash rapporte {pct} % de plus.',
 
-    'fb.title': 'Retour sur les cotations', 'fb.text': 'Blocs dont l’avis des grimpeurs diffère de la cotation ouvreur (3 votes min.).',
+    'fb.title': 'Retour sur les cotations', 'fb.text': 'Blocs dont la cotation grimpeurs diffère de la cotation ouvreur (3 votes min.).',
     'fb.apply': 'Appliquer', 'fb.none': 'Toutes les cotations correspondent au ressenti des grimpeurs.',
 
     'p.setter': 'Ouvreur', 'p.set': 'Ouverts', 'p.onWalls': 'En place', 'p.totalSends': 'Réussites',
@@ -193,7 +193,7 @@ const I18N = {
     'm.repeats': 'Begehungen', 'm.likes': 'Likes', 'm.comments': 'Kommentare',
     'm.edit': 'Griffe & Grad bearbeiten', 'm.markSent': 'Als geschafft markieren', 'm.sent': 'Geschafft', 'm.flash': 'Flash', 'm.flashed': 'Geflasht',
     'm.flashHint': 'Flash = im ersten Versuch geschafft: +{pct} % Punkte.',
-    'm.grade': 'Grad', 'm.setterGrade': 'Schrauber-Grad', 'm.consensus': 'Einschätzung der Kletternden',
+    'm.grade': 'Grad', 'm.setterGrade': 'Schrauber-Grad', 'm.consensus': 'Grad der Kletternden',
     'm.votes': '{n} Stimmen', 'm.noVotes': 'Noch keine Stimmen', 'm.yourVote': 'Deine Stimme',
     'm.voteHint': 'Markiere den Boulder als geschafft, um über den Grad abzustimmen.',
     'm.info': 'Infos', 'm.noTags': 'Keine Stil-Tags', 'm.opened': 'Geschraubt am', 'm.closes': 'Abbau', 'm.inDays': 'in {n} Tagen',
@@ -210,7 +210,7 @@ const I18N = {
     'r.how': 'So funktionieren die Punkte',
     'r.howText': 'Die Punkte richten sich nach dem Schrauber-Grad. Jede Farbe ist etwa doppelt so viel wert wie die vorherige, Untergrade steigen gleichmäßig zur nächsten Farbe. Ein Flash bringt {pct} % extra.',
 
-    'fb.title': 'Grad-Feedback', 'fb.text': 'Boulder, bei denen die Einschätzung vom Schrauber-Grad abweicht (ab 3 Stimmen).',
+    'fb.title': 'Grad-Feedback', 'fb.text': 'Boulder, bei denen der Grad der Kletternden vom Schrauber-Grad abweicht (ab 3 Stimmen).',
     'fb.apply': 'Übernehmen', 'fb.none': 'Alle Grade passen zum Gefühl der Kletternden.',
 
     'p.setter': 'Schrauber', 'p.set': 'Geschraubt', 'p.onWalls': 'Hängen', 'p.totalSends': 'Begehungen',
