@@ -715,12 +715,13 @@
     const oldZoom = document.querySelector('.zoombox');
     const zoomScroll = oldZoom ? [oldZoom.scrollLeft, oldZoom.scrollTop] : null;
     root.innerHTML = header() + `<main>${views[ui.tab]()}</main>` + tabs()
-      + (ui.boulderId ? boulderModal() : ui.quickId ? quickSheet() : '');
+      + (ui.boulderId ? boulderModal() : ui.quickId ? quickSheet() : '')
+      + (ui.cropper ? cropperView() : '');
     const sheet = document.querySelector('.sheet');
     if (sheet) sheet.scrollTop = sheetScroll;
     const zoom = document.querySelector('.zoombox');
     if (zoom && zoomScroll) [zoom.scrollLeft, zoom.scrollTop] = zoomScroll;
-    document.body.classList.toggle('modal-open', !!ui.boulderId);
+    document.body.classList.toggle('modal-open', !!ui.boulderId || !!ui.cropper);
     ui.lastModalId = ui.boulderId;
     ui.lastQuickId = ui.quickId;
   }
@@ -879,6 +880,9 @@
       ui.editor = newEditor(ui.editor.sectorId);
       save();
     },
+    'crop-cancel': () => { ui.cropper = null; },
+    'crop-reset': () => { ui.cropper.rect = { x: 0, y: 0, w: 1, h: 1 }; },
+    'crop-apply': () => { applyCrop(); return false; },
     'ed-color': (id) => { ui.editor.color = id; },
     'ed-sub': (id) => { ui.editor.subGrade = Number(id); },
     'ed-tag': (id) => {
@@ -949,7 +953,12 @@
     'ed-circle': (v) => { ui.editor.circleR = Number(v); },
     'ed-opened': (v) => { ui.editor.openedAt = v; },
     'ed-closes': (v) => { ui.editor.closesAt = v; },
-    'ed-photo': (v, el) => { addWallPhoto(el.files[0]); return false; },
+    'ed-photo': (v, el) => {
+      const file = el.files[0];
+      el.value = '';
+      addWallPhoto(file);
+      return false;
+    },
     'video-upload': (v, el) => {
       const file = el.files[0];
       if (!file || !file.type.startsWith('video/')) return false;
@@ -958,41 +967,115 @@
     },
   };
 
-  // Downscale the photo so it fits in browser storage.
+  // Read the photo and open the crop step; the source is downscaled to keep the cropper fast.
   function addWallPhoto(file) {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const k = Math.min(1, 1400 / Math.max(img.width, img.height));
+        const k = Math.min(1, 2400 / Math.max(img.width, img.height));
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(img.width * k);
         canvas.height = Math.round(img.height * k);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        const ed = ui.editor;
-        const sectorId = ed.sectorId;
-        let part;
-        if (ed.part === 'new') {
-          part = Math.max(0, ...sectorParts(sectorId).map((p) => p.part || 1)) + 1;
-        } else {
-          part = ed.part;
-          const old = editorPhoto();
-          const yesterday = isoDate(Date.now() - DAY);
-          if (old) state.boulders.filter((b) => b.photoId === old.id && isActive(b)).forEach((b) => { b.closesAt = yesterday; });
-        }
-        state.wallPhotos.push({
-          id: 'p' + Date.now(), sectorId, part, src: canvas.toDataURL('image/jpeg', 0.85),
-          w: canvas.width, h: canvas.height, crop: { top: 0, bottom: 1 }, createdAt: Date.now(),
-        });
-        ui.editor = { ...newEditor(sectorId), part, mode: ed.mode };
-        save();
+        ui.cropper = { src: canvas.toDataURL('image/jpeg', 0.92), w: canvas.width, h: canvas.height, rect: { x: 0, y: 0, w: 1, h: 1 } };
         render();
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   }
+
+  function applyCrop() {
+    const c = ui.cropper;
+    const img = new Image();
+    img.onload = () => {
+      const r = c.rect;
+      const sw = r.w * img.width, sh = r.h * img.height;
+      // Kept under ~1600px so several photos fit in browser storage.
+      const k = Math.min(1, 1600 / Math.max(sw, sh));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(sw * k);
+      canvas.height = Math.round(sh * k);
+      canvas.getContext('2d').drawImage(img, r.x * img.width, r.y * img.height, sw, sh, 0, 0, canvas.width, canvas.height);
+      ui.cropper = null;
+      commitWallPhoto(canvas.toDataURL('image/jpeg', 0.85), canvas.width, canvas.height);
+    };
+    img.src = c.src;
+  }
+
+  function commitWallPhoto(src, w, h) {
+    const ed = ui.editor;
+    const sectorId = ed.sectorId;
+    let part;
+    if (ed.part === 'new') {
+      part = Math.max(0, ...sectorParts(sectorId).map((p) => p.part || 1)) + 1;
+    } else {
+      part = ed.part;
+      const old = editorPhoto();
+      const yesterday = isoDate(Date.now() - DAY);
+      if (old) state.boulders.filter((b) => b.photoId === old.id && isActive(b)).forEach((b) => { b.closesAt = yesterday; });
+    }
+    state.wallPhotos.push({ id: 'p' + Date.now(), sectorId, part, src, w, h, crop: { top: 0, bottom: 1 }, createdAt: Date.now() });
+    ui.editor = { ...newEditor(sectorId), part, mode: ed.mode };
+    save();
+    render();
+  }
+
+  function cropperView() {
+    const c = ui.cropper;
+    const r = c.rect;
+    return `<div class="cropper">
+      <div class="crop-head"><b>${t('s.cropTitle')}</b><span class="muted small">${t('s.cropHint')}</span></div>
+      <div class="crop-stage"><div class="crop-frame" style="aspect-ratio:${c.w}/${c.h};width:min(100%, calc(66vh * ${(c.w / c.h).toFixed(4)}))">
+        <img src="${esc(c.src)}" alt="" draggable="false">
+        <div class="crop-rect" data-crop="move" style="left:${r.x * 100}%;top:${r.y * 100}%;width:${r.w * 100}%;height:${r.h * 100}%">
+          ${['nw', 'ne', 'sw', 'se'].map((hd) => `<i class="crop-handle ${hd}" data-crop="${hd}"></i>`).join('')}
+        </div></div></div>
+      <div class="crop-bar">
+        <button class="btn ghost" data-action="crop-cancel">${t('s.cancel')}</button>
+        <button class="btn ghost" data-action="crop-reset">${t('s.cropReset')}</button>
+        <button class="btn primary" data-action="crop-apply">${t('s.cropApply')}</button>
+      </div>
+    </div>`;
+  }
+
+  let cropDrag = null;
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+  document.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('[data-crop]');
+    if (!handle || !ui.cropper) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    const frame = handle.closest('.crop-frame').getBoundingClientRect();
+    cropDrag = { mode: handle.dataset.crop, sx: e.clientX, sy: e.clientY, fw: frame.width, fh: frame.height, start: { ...ui.cropper.rect } };
+  });
+
+  document.addEventListener('pointermove', (e) => {
+    if (!cropDrag || !ui.cropper) return;
+    const MIN = 0.08;
+    const dx = (e.clientX - cropDrag.sx) / cropDrag.fw, dy = (e.clientY - cropDrag.sy) / cropDrag.fh;
+    const s = cropDrag.start;
+    let { x, y, w, h } = s;
+    if (cropDrag.mode === 'move') {
+      x = clamp(s.x + dx, 0, 1 - s.w);
+      y = clamp(s.y + dy, 0, 1 - s.h);
+    } else {
+      if (cropDrag.mode.includes('w')) { x = clamp(s.x + dx, 0, s.x + s.w - MIN); w = s.x + s.w - x; }
+      if (cropDrag.mode.includes('e')) w = clamp(s.w + dx, MIN, 1 - s.x);
+      if (cropDrag.mode.includes('n')) { y = clamp(s.y + dy, 0, s.y + s.h - MIN); h = s.y + s.h - y; }
+      if (cropDrag.mode.includes('s')) h = clamp(s.h + dy, MIN, 1 - s.y);
+    }
+    ui.cropper.rect = { x, y, w, h };
+    Object.assign(document.querySelector('.crop-rect').style, {
+      left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%`,
+    });
+  });
+
+  document.addEventListener('pointerup', () => { cropDrag = null; });
+  document.addEventListener('pointercancel', () => { cropDrag = null; });
 
   // Navigation (tab, boulder details, quick sheet) is mirrored in browser history so the phone back button works.
   const navState = () => ({ tab: ui.tab, boulderId: ui.boulderId, quickId: ui.quickId });
