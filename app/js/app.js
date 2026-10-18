@@ -302,6 +302,18 @@
   const polyPoints = (poly) => poly.map(([x, y]) => `${x},${y}`).join(' ');
   const centroid = (poly) => [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length];
 
+  // Stairs are quads [a, b, c, d]: one step line from edge a→d to edge b→c every ~7 px.
+  function stairSteps([a, b, c, d]) {
+    const n = Math.max(2, Math.round(Math.hypot(d[0] - a[0], d[1] - a[1]) / 7));
+    const lerp = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+    let out = '';
+    for (let i = 1; i < n; i++) {
+      const [x1, y1] = lerp(a, d, i / n), [x2, y2] = lerp(b, c, i / n);
+      out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+    }
+    return out;
+  }
+
   function mapLabel(shape, text) {
     const [x, y, rot = 0, size = 22] = shape.label || [...centroid(shape.poly), 0, 22];
     return `<text x="${x}" y="${y}" style="font-size:${size}px" transform="rotate(${rot} ${x} ${y})">${text}</text>`;
@@ -314,6 +326,8 @@
     const layers = GYM_MAP.shapes.map((s) => {
       if (s.kind === 'outline') return `<polygon class="map-outline" points="${polyPoints(s.poly)}"/>`;
       if (s.kind === 'floor') return `<polygon class="map-floor" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}" points="${polyPoints(s.poly)}"/>`;
+      if (s.kind === 'mat') return `<polygon class="map-mat" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}" points="${polyPoints(s.poly)}"/>`;
+      if (s.kind === 'stairs') return `<g class="map-stairs"><polygon points="${polyPoints(s.poly)}"/>${s.poly.length === 4 ? stairSteps(s.poly) : ''}</g>`;
       if (s.kind === 'room') {
         return `<g class="map-room" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}"><polygon points="${polyPoints(s.poly)}"/>${mapLabel(s, esc(t(s.name)))}</g>`;
       }

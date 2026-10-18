@@ -425,6 +425,10 @@ textarea { width: 100%; min-height: 70px; margin-top: 12px; padding: 12px; borde
 .map-zoom { position: absolute; top: 6px; right: 6px; z-index: 1; font-size: 18px; font-weight: 800; }
 .map-outline { fill: var(--surface-2); stroke: var(--muted); stroke-width: 3; stroke-linejoin: round; }
 .map-floor { fill: var(--area); fill-opacity: .1; }
+.map-mat { fill: var(--area); fill-opacity: .22; pointer-events: none; }
+.map-stairs { pointer-events: none; }
+.map-stairs polygon { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; }
+.map-stairs line { stroke: var(--muted); stroke-width: 1.2; }
 .map-room polygon { fill: var(--area); fill-opacity: .18; stroke: var(--line); stroke-width: 2; }
 .map-room text { fill: var(--muted); text-anchor: middle; dominant-baseline: middle; font-weight: 600; pointer-events: none; }
 .zone polygon:not(.hit) { fill: var(--area); fill-opacity: .55; stroke: var(--area); stroke-width: 2; stroke-linejoin: round; transition: fill-opacity .15s; }

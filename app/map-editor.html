@@ -52,7 +52,7 @@
     <h2>Shapes</h2>
     <div id="list"></div>
     <div class="row">
-      <button id="add-sector">+ Wall sector</button><button id="add-room">+ Room</button><button id="add-floor">+ Floor</button>
+      <button id="add-sector">+ Wall sector</button><button id="add-room">+ Room</button><button id="add-floor">+ Floor</button><button id="add-mat">+ Mat</button><button id="add-stairs">+ Stairs</button>
     </div>
 
     <h2>Tool</h2>
@@ -77,7 +77,7 @@
   <script>
     const NS = 'http://www.w3.org/2000/svg';
     const AREAS = { main: '#c49a7a', labyrinth: '#5ec8f2', welle: '#f27aa8', board: '#9bd46a', none: '#8b93a7' };
-    const KIND_COLOR = { floor: 0.12, room: 0.25 };
+    const KIND_COLOR = { floor: 0.12, room: 0.25, mat: 0.3, stairs: 0.15 };
     const DRAFT_KEY = 'elys-map-draft';
     const svg = document.getElementById('svg');
     let map = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') || JSON.parse(JSON.stringify(GYM_MAP));
@@ -91,6 +91,18 @@
     const centroid = (p) => [p.reduce((a, q) => a + q[0], 0) / p.length, p.reduce((a, q) => a + q[1], 0) / p.length];
     const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
     const round = (v) => Math.round(v);
+
+    // Same step drawing as the app: lines from edge 1→4 to edge 2→3.
+    function stairSteps([a, b, c, d]) {
+      const n = Math.max(2, Math.round(Math.hypot(d[0] - a[0], d[1] - a[1]) / 7));
+      const lerp = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+      let out = '';
+      for (let i = 1; i < n; i++) {
+        const [x1, y1] = lerp(a, d, i / n), [x2, y2] = lerp(b, c, i / n);
+        out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1.2" pointer-events="none"/>`;
+      }
+      return out;
+    }
 
     function svgPoint(e) {
       const pt = svg.createSVGPoint();
@@ -111,6 +123,7 @@
         const color = AREAS[s.area] || AREAS.none;
         const op = KIND_COLOR[s.kind] ?? 0.45;
         html += `<polygon class="shape ${s.kind} ${i === sel ? 'sel' : ''}" data-i="${i}" points="${pts}" fill="${color}" stroke="${color}" style="fill-opacity:${i === sel ? 0.7 : op}"/>`;
+        if (s.kind === 'stairs' && s.poly.length === 4) html += stairSteps(s.poly);
         if (s.kind === 'sector' || s.kind === 'room') {
           const [x, y, rot = 0, size = 22] = s.label || [...centroid(s.poly), 0, 22];
           html += `<text class="label" x="${x}" y="${y}" style="font-size:${size}px" transform="rotate(${rot} ${x} ${y})">${esc(s.kind === 'room' ? s.name.replace('map.', '') : s.name)}</text>`;
@@ -145,7 +158,8 @@
         ${s.kind === 'sector' ? `<label><span>Name (shown in the app)</span><input data-prop="name" value="${esc(s.name)}"></label>
           <label><span>Id (stored with the boulders \u2013 do not change for existing walls)</span><input data-prop="id" value="${esc(s.id)}" ${s.isNew ? '' : 'readonly'}></label>` : ''}
         ${s.kind === 'room' ? `<label><span>Name (translation key or text)</span><input data-prop="name" value="${esc(s.name)}"></label>` : ''}
-        ${s.kind !== 'outline' ? `<label><span>Color group</span><select data-prop="area">${areaOpts}</select></label>` : ''}
+        ${s.kind === 'stairs' ? '<p class="help">Stairs need exactly 4 points; steps run from side 1\u21924 to side 2\u21923.</p>' : ''}
+        ${s.kind !== 'outline' && s.kind !== 'stairs' ? `<label><span>Color group</span><select data-prop="area">${areaOpts}</select></label>` : ''}
         ${s.kind === 'sector' || s.kind === 'room' ? `<div class="row">
           <label style="flex:1"><span>Label angle</span><input type="number" data-label="2" value="${lab[2] || 0}" step="5"></label>
           <label style="flex:1"><span>Label size</span><input type="number" data-label="3" value="${lab[3] || 22}" min="8" max="60"></label></div>` : ''}
@@ -171,9 +185,11 @@
       const poly = [[cx - 40, cy - 40], [cx + 40, cy - 40], [cx + 40, cy + 40], [cx - 40, cy + 40]];
       const shape = kind === 'sector'
         ? { kind, id: 'newwall' + Date.now().toString(36).slice(-3), name: 'New wall', area: 'main', poly, isNew: true }
-        : kind === 'room' ? { kind, name: 'New room', area: 'none', poly } : { kind, area: 'main', poly };
-      map.shapes.push(shape);
-      sel = map.shapes.length - 1;
+        : kind === 'room' ? { kind, name: 'New room', area: 'none', poly } : kind === 'stairs' ? { kind, poly } : { kind, area: 'main', poly };
+      // Everything except walls goes below the walls so it never hides them.
+      const firstSector = map.shapes.findIndex((s) => s.kind === 'sector');
+      sel = kind === 'sector' || firstSector < 0 ? map.shapes.length : firstSector;
+      map.shapes.splice(sel, 0, shape);
       draw();
     }
 
@@ -264,6 +280,8 @@ ${lines.join('\n')}
     document.getElementById('add-sector').onclick = () => addShape('sector');
     document.getElementById('add-room').onclick = () => addShape('room');
     document.getElementById('add-floor').onclick = () => addShape('floor');
+    document.getElementById('add-mat').onclick = () => addShape('mat');
+    document.getElementById('add-stairs').onclick = () => addShape('stairs');
     document.getElementById('bg-op').oninput = draw;
     document.getElementById('zoom').oninput = draw;
     document.getElementById('bg-file').onchange = (e) => {
