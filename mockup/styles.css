@@ -243,6 +243,26 @@ nav.tabs button.active { background: var(--accent); color: var(--accent-ink); }
 .profile-hero .stats { width: 100%; margin-top: 8px; }
 .hist-big .histo { height: 50px; gap: 6px; }
 .hist-big .histo i { width: 22px; border-radius: 4px; }
+.color-stats { width: 100%; margin-top: 8px; }
+.cbars { display: flex; justify-content: center; align-items: flex-end; gap: 8px; height: 84px; }
+.cbar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; padding: 0; border: 0; background: none; font-size: 11px; font-weight: 700; color: var(--muted); transition: opacity .15s; }
+.cbar i { display: block; width: 26px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
+.cbar.on span { color: var(--text); }
+.cbar.on i { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.cbar.faded { opacity: .35; }
+.color-stats > p { margin: 10px 0 0; }
+.breakdown { margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); text-align: left; }
+.bd-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sub-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.sub-n { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; background: var(--surface-2); font-size: 12px; font-weight: 700; }
+.sub-row.setter .sub-n { background: var(--text); color: var(--bg); }
+.track { flex: 1; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); transition: width .3s; }
+.sub-val { min-width: 44px; display: flex; justify-content: flex-end; gap: 4px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mini-tag { padding: 0 5px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 10px; font-weight: 700; }
+.mini-tag.you { background: rgba(200, 255, 61, .15); color: var(--accent); }
+.dist { margin-top: 12px; }
+.dist-title { margin-bottom: 6px; font-size: 12px; color: var(--muted); }
 
 /* Modal */
 .modal { position: fixed; inset: 0; z-index: 10; display: flex; justify-content: center; background: rgba(0, 0, 0, .7); animation: fade .2s; }

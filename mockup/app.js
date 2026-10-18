@@ -18,7 +18,7 @@
   const ui = {
     tab: 'boulders', sectorId: 'welle', colors: new Set(), status: 'all', tag: '',
     boulderId: null, lastModalId: null, editor: newEditor(),
-    quickId: null, votePromptId: null,
+    quickId: null, votePromptId: null, profileColor: null,
     auth: { mode: 'signup', error: '' },
     videos: {}, // boulderId -> [{ userId, url, setter }] (in-memory only in the mockup)
   };
@@ -383,6 +383,26 @@
       </div>`;
   }
 
+  const subRow = (color, n, value, max, label, cls = '') => `<div class="sub-row ${cls}">
+      <span class="sub-n">${n}</span>
+      <div class="track"><i style="width:${max ? (value / max) * 100 : 0}%;background:${colorOf(color).hex}"></i></div>
+      <span class="sub-val">${label}</span></div>`;
+
+  function voteDistribution(b) {
+    const votes = state.votes.filter((v) => v.boulderId === b.id);
+    if (!votes.length) return '';
+    const counts = [1, 2, 3, 4, 5].map((n) => votes.filter((v) => v.subGrade === n).length);
+    const max = Math.max(...counts);
+    const mine = myVote(b);
+    return `<div class="dist"><div class="dist-title">${t('m.voteDist')}</div>
+      ${counts.map((count, i) => {
+        const n = i + 1;
+        const tags = (b.subGrade === n ? `<span class="mini-tag">${t('m.setterMark')}</span>` : '')
+          + (mine && mine.subGrade === n ? `<span class="mini-tag you">${t('m.you')}</span>` : '');
+        return subRow(b.color, n, count, max, `${count}${tags}`, b.subGrade === n ? 'setter' : '');
+      }).join('')}</div>`;
+  }
+
   function boulderModal() {
     const b = state.boulders.find((x) => x.id === ui.boulderId);
     if (!b) return '';
@@ -428,6 +448,7 @@
           <div class="kv"><span>${t('m.consensus')}</span>${cons
             ? `<span>${gradePill(cons.color, cons.subGrade)} <small class="muted">${t('m.votes', { n: cons.count })}</small></span>`
             : `<span class="muted">${t('m.noVotes')}</span>`}</div>
+          ${voteDistribution(b)}
           ${isSetter() ? '' : send
             ? `<div class="vote-label">${t('m.yourVote')}</div>${voteBlock(b)}`
             : `<p class="muted small">${t('m.voteHint')}</p>`}
@@ -505,6 +526,25 @@
       </section>`;
   }
 
+  // Profile color bars: tap one to see sends per sub-grade among boulders on the walls.
+  function colorStats(perColor) {
+    const max = Math.max(1, ...perColor);
+    const sel = ui.profileColor;
+    const bars = COLORS.map((c, i) => `<button class="cbar ${sel === c.id ? 'on' : ''} ${sel && sel !== c.id ? 'faded' : ''}"
+        data-action="profile-color" data-id="${c.id}" aria-label="${colorLabel(c.id)}: ${perColor[i]}">
+        <span>${perColor[i]}</span><i style="height:${4 + (perColor[i] / max) * 56}px;background:${c.hex}"></i></button>`).join('');
+    if (!sel) return `<div class="cbars">${bars}</div><p class="muted small">${t('p.tapColor')}</p>`;
+    const onWalls = state.boulders.filter((b) => isActive(b) && b.color === sel);
+    const rows = [1, 2, 3, 4, 5].map((n) => {
+      const all = onWalls.filter((b) => b.subGrade === n);
+      const done = all.filter((b) => mySend(b)).length;
+      return subRow(sel, n, done, all.length, `${done}/${all.length}`);
+    }).join('');
+    return `<div class="cbars">${bars}</div>
+      <div class="breakdown"><div class="bd-head"><span class="grade" style="--c:${colorOf(sel).hex}"><i class="sw"></i>${colorLabel(sel)}</span>
+        <span class="muted small">${t('p.doneOnWalls')}</span></div>${rows}</div>`;
+  }
+
   function feedbackCard() {
     const list = gradeFeedback();
     return `<section class="card">
@@ -550,7 +590,7 @@
     return `<section class="profile-hero">${head}
         <div class="stats"><div><b>#${rank + 1}</b><span>${t('p.rank')}</span></div><div><b>${mine.pts}</b><span>${t('p.points')}</span></div>
           <div><b>${mine.n}</b><span>${t('p.sends')}</span></div><div><b>${mine.flashes}</b><span>${t('p.flashes')}</span></div></div>
-        <div class="hist-big">${histogram(mine.perColor)}</div></section>
+        <div class="color-stats">${colorStats(mine.perColor)}</div></section>
       <div class="list-head">${t('p.mySends')}</div>
       <div class="list">${mySends.map(boulderRow).join('') || `<p class="empty">${t('p.noSends')}</p>`}</div>${settingsCard()}`;
   }
@@ -701,6 +741,7 @@
       ui.votePromptId = null;
     },
     'close-quick': () => { ui.quickId = null; ui.votePromptId = null; },
+    'profile-color': (id) => { ui.profileColor = ui.profileColor === id ? null : id; },
     'vote-done': () => {
       if (ui.quickId === ui.votePromptId) ui.quickId = null;
       ui.votePromptId = null;
