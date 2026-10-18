@@ -21,6 +21,8 @@ const Api = (() => {
   }
 
   const appUrl = () => `${location.origin}${location.pathname}`;
+  // Boulders and profiles are linked through several tables (sends, likes…): name the setter foreign key.
+  const BOULDER_COLS = '*, setter:profiles!setter_id(name)';
 
   return {
     configured,
@@ -54,12 +56,12 @@ const Api = (() => {
       return check(await db.from('wall_photos').insert({ sector_id: sectorId, part, path, w, h, created_by: userId }).select().single());
     },
     retirePhoto: async (id) => check(await db.from('wall_photos').update({ retired: true }).eq('id', id)),
-    activeBoulders: async () => fetchAll(() => db.from('boulders').select('*, setter:profiles(name)')
+    activeBoulders: async () => fetchAll(() => db.from('boulders').select(BOULDER_COLS)
       .lte('opened_at', today()).or(`closes_at.is.null,closes_at.gte.${today()}`).order('created_at')),
-    boulder: async (id) => check(await db.from('boulders').select('*, setter:profiles(name)').eq('id', id).maybeSingle()),
+    boulder: async (id) => check(await db.from('boulders').select(BOULDER_COLS).eq('id', id).maybeSingle()),
     saveBoulder: async (id, fields) => (id
-      ? check(await db.from('boulders').update(fields).eq('id', id).select('*, setter:profiles(name)').single())
-      : check(await db.from('boulders').insert(fields).select('*, setter:profiles(name)').single())),
+      ? check(await db.from('boulders').update(fields).eq('id', id).select(BOULDER_COLS).single())
+      : check(await db.from('boulders').insert(fields).select(BOULDER_COLS).single())),
     archiveBoulders: async (ids, date) => check(await db.from('boulders').update({ closes_at: date }).in('id', ids)),
     deleteBoulder: async (id) => check(await db.from('boulders').delete().eq('id', id)),
     stats: async (ids) => {
@@ -93,13 +95,13 @@ const Api = (() => {
 
     // ---------- Boulder details ----------
     repeats: async (boulderId) => check(await db.from('sends')
-      .select('user_id, flash, created_at, who:profiles(name, hide_from_ranking)')
+      .select('user_id, flash, created_at, who:profiles!user_id(name, hide_from_ranking)')
       .eq('boulder_id', boulderId).order('created_at', { ascending: false }).limit(50)),
     comments: async (boulderId) => check(await db.from('comments')
-      .select('*, author:profiles(name)').eq('boulder_id', boulderId).order('created_at')),
+      .select('*, author:profiles!user_id(name)').eq('boulder_id', boulderId).order('created_at')),
     addComment: async (uid, boulderId, body) => check(await db.from('comments').insert({ user_id: uid, boulder_id: boulderId, body })),
     videos: async (boulderId) => check(await db.from('videos')
-      .select('*, author:profiles(name, role)').eq('boulder_id', boulderId).order('created_at')),
+      .select('*, author:profiles!user_id(name, role)').eq('boulder_id', boulderId).order('created_at')),
     addVideo: async (uid, boulderId, url) => check(await db.from('videos').insert({ user_id: uid, boulder_id: boulderId, url })),
     deleteContent: async (type, id) => check(await db.from(type === 'video' ? 'videos' : 'comments').delete().eq('id', id)),
     hideContent: async (type, id) => check(await db.from(type === 'video' ? 'videos' : 'comments').update({ hidden: true }).eq('id', id)),
@@ -109,14 +111,14 @@ const Api = (() => {
     openReports: async () => {
       const reports = check(await db.from('reports').select('*').eq('resolved', false).order('created_at'));
       const ids = (type) => reports.filter((r) => r.target_type === type).map((r) => r.target_id);
-      const comments = ids('comment').length ? check(await db.from('comments').select('*, author:profiles(name)').in('id', ids('comment'))) : [];
-      const videos = ids('video').length ? check(await db.from('videos').select('*, author:profiles(name)').in('id', ids('video'))) : [];
+      const comments = ids('comment').length ? check(await db.from('comments').select('*, author:profiles!user_id(name)').in('id', ids('comment'))) : [];
+      const videos = ids('video').length ? check(await db.from('videos').select('*, author:profiles!user_id(name)').in('id', ids('video'))) : [];
       const targets = new Map([...comments, ...videos].map((x) => [x.id, x]));
       return reports.map((r) => ({ ...r, target: targets.get(r.target_id) || null }));
     },
     resolveReport: async (id) => check(await db.from('reports').update({ resolved: true }).eq('id', id)),
     sendFeedback: async (uid, type, body) => check(await db.from('feedback').insert({ user_id: uid, type, body })),
-    feedback: async () => check(await db.from('feedback').select('*, author:profiles(name)').order('created_at', { ascending: false }).limit(100)),
+    feedback: async () => check(await db.from('feedback').select('*, author:profiles!user_id(name)').order('created_at', { ascending: false }).limit(100)),
 
     // ---------- Rankings and seasons ----------
     ranking: async (seasonId) => check(await db.rpc('ranking', { p_season: seasonId || null })),
@@ -125,7 +127,7 @@ const Api = (() => {
     deleteSeason: async (id) => check(await db.from('seasons').delete().eq('id', id)),
 
     // ---------- Wall reset planning ----------
-    plans: async () => check(await db.from('wall_plans').select('*, setter:profiles(name)').order('planned_on')),
+    plans: async () => check(await db.from('wall_plans').select('*, setter:profiles!setter_id(name)').order('planned_on')),
     savePlan: async (id, fields) => check(id
       ? await db.from('wall_plans').update(fields).eq('id', id)
       : await db.from('wall_plans').insert(fields)),
