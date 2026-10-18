@@ -1,0 +1,6 @@
+# Only publish the mockup and the wall photos it uses.
+/photos/*
+!/photos/elys_exemple_section.jpg
+!/photos/elys_exemple_section_2.jpg
+/mockup/start.bat
+/.tools

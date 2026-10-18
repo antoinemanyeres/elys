@@ -1,0 +1,238 @@
+// UI translations. English is the default and the fallback for missing keys.
+const LANGUAGES = [
+  { id: 'en', label: 'English', short: 'EN', locale: 'en-GB' },
+  { id: 'fr', label: 'Français', short: 'FR', locale: 'fr-FR' },
+  { id: 'de', label: 'Deutsch', short: 'DE', locale: 'de-DE' },
+];
+
+const I18N = {
+  en: {
+    'brand.sub': 'bouldering',
+    'tab.boulders': 'Boulders', 'tab.ranking': 'Ranking', 'tab.profile': 'Profile', 'tab.set': 'Set',
+    'map.fitness': 'Fitness', 'map.entrance': 'Entrance',
+    'color.green': 'Green', 'color.blue': 'Blue', 'color.yellow': 'Yellow', 'color.red': 'Red',
+    'color.white': 'White', 'color.black': 'Black', 'color.pink': 'Pink',
+    'tag.Crimps': 'Crimps', 'tag.Slopers': 'Slopers', 'tag.Pinches': 'Pinches', 'tag.Pockets': 'Pockets',
+    'tag.Volumes': 'Volumes', 'tag.Dyno': 'Dyno', 'tag.Coordination': 'Coordination', 'tag.Balance': 'Balance',
+    'tag.Slab': 'Slab', 'tag.Overhang': 'Overhang', 'tag.Compression': 'Compression', 'tag.Heel hook': 'Heel hook',
+    'tag.Toe hook': 'Toe hook', 'tag.Mantle': 'Mantle', 'tag.Endurance': 'Endurance',
+    'hold.start': 'Start', 'hold.hold': 'Hold', 'hold.top': 'Top', 'hold.startSymbol': 'S', 'hold.topSymbol': 'T',
+    'pts': 'pts', 'new': 'NEW',
+
+    'b.wholeGym': 'Whole gym', 'b.tapMap': 'Tap a wall on the map',
+    'f.all': 'All boulders', 'f.todo': 'To do', 'f.sent': 'Sent', 'f.new': 'New this week', 'f.allStyles': 'All styles',
+    'b.noPhoto': 'No wall photo for this sector yet.', 'b.tapBoulder': 'Tap a boulder to open it',
+    'b.count1': '1 boulder', 'b.countN': '{n} boulders', 'b.noMatch': 'No boulders match these filters.',
+    'b.holds': '{n} holds', 'b.sends': '{n} sends',
+
+    'm.close': 'Close', 'm.like': 'Like', 'm.setBy': 'set by {name}',
+    'm.repeats': 'Repeats', 'm.likes': 'Likes', 'm.comments': 'Comments',
+    'm.edit': 'Edit holds & grade', 'm.markSent': 'Mark as sent', 'm.sent': 'Sent', 'm.flash': 'Flash', 'm.flashed': 'Flashed',
+    'm.flashHint': 'Flash = sent on the first try: +{pct}% points.',
+    'm.grade': 'Grade', 'm.setterGrade': 'Setter grade', 'm.consensus': "Climbers' consensus",
+    'm.votes': '{n} votes', 'm.noVotes': 'No votes yet', 'm.yourVote': 'Your vote',
+    'm.voteHint': 'Mark the boulder as sent to vote for its grade.',
+    'm.info': 'Info', 'm.noTags': 'No style tags', 'm.opened': 'Opened', 'm.closes': 'Closes', 'm.inDays': 'in {n} days',
+    'm.sentBy': 'Sent by {names}', 'm.firstRepeat': 'No repeats yet. Be the first!',
+    'm.videos': 'Videos', 'm.noVideos': 'No videos yet.', 'm.uploadVideo': 'Upload a video',
+    'm.videoNote': 'Mockup: videos disappear when the page is reloaded.', 'm.setterBeta': 'Setter beta',
+    'm.beta': 'Beta & comments', 'm.placeholder': 'Share your beta…', 'm.post': 'Post',
+
+    'r.note': 'Only boulders currently on the walls count. When a wall is reset, its points leave the ranking.',
+    'r.how': 'How points work',
+    'r.howText': 'Points are fixed by the setter grade. Each color is worth about twice the previous one, and sub-grades climb smoothly toward the next color. A flash earns {pct}% extra.',
+
+    'fb.title': 'Grade feedback', 'fb.text': "Boulders where climbers' consensus differs from the setter grade (3+ votes).",
+    'fb.apply': 'Apply', 'fb.none': "All grades match the climbers' feeling.",
+
+    'p.setter': 'Setter', 'p.set': 'Set', 'p.onWalls': 'On the walls', 'p.totalSends': 'Total sends',
+    'p.myBoulders': 'My boulders on the walls', 'p.rank': 'Rank', 'p.points': 'Points', 'p.sends': 'Sends', 'p.flashes': 'Flashes',
+    'p.mySends': 'My current sends', 'p.noSends': 'No sends yet. Go climb!',
+    'p.settings': 'Settings', 'p.language': 'Language', 'p.demoUser': 'Demo: switch user', 'p.logout': 'Log out',
+    'p.reset': 'Reset demo data', 'p.resetConfirm': 'Reset all demo data?',
+
+    's.new': 'Set a new boulder', 's.editing': 'Editing', 's.cancel': 'Cancel', 's.wall': 'Wall',
+    's.upload': 'Upload new wall photo', 's.uploadNote': 'A new photo archives the boulders currently on this wall.',
+    's.holdType': 'Hold type', 's.outline': 'Outline', 's.auto': 'Auto-detect', 's.circle': 'Circle',
+    's.sensitivity': 'Sensitivity', 's.circleSize': 'Circle size', 's.undo': 'Undo', 's.clear': 'Clear',
+    's.detecting': 'Detecting hold…', 's.tapHint': 'Tap a hold to outline it · tap an outline to remove it',
+    's.noPhoto': 'Upload a photo of the wall to start.', 's.details': 'Grade & details',
+    's.color': 'Color', 's.sub': 'Sub-grade', 's.style': 'Style', 's.opening': 'Opening date', 's.end': 'End date',
+    's.holds': 'Holds', 's.holdsSummary': '{n} · {s} start · {t} top', 's.pointsPerSend': 'Points per send',
+    's.publish': 'Publish boulder', 's.save': 'Save changes', 's.onWall': 'On this wall ({n})',
+    's.edit': 'Edit', 's.archive': 'Archive', 's.noBoulders': 'No boulders yet.',
+    's.errStartTop': 'Add at least one start hold and one top hold.',
+    's.errDates': 'The end date must be after the opening date.',
+    's.notDetected': 'Hold not detected: a round marker was placed instead. Adjust it with “Circle size” or try another sensitivity.',
+    's.noDetector': 'Auto-detection needs the mockup to be opened with start.bat. A round marker was placed instead.',
+    'storageFull': 'Browser storage is full (photos are stored locally in this mockup).',
+
+    'l.tagline': 'The boulders of Elys, in your pocket.', 'l.google': 'Continue with Google', 'l.or': 'or',
+    'l.name': 'Climber name', 'l.email': 'Email', 'l.password': 'Password',
+    'l.signup': 'Create account', 'l.login': 'Log in',
+    'l.toLogin': 'Already have an account? Log in', 'l.toSignup': 'New here? Create an account',
+    'l.demoNote': 'Mockup: no real account is created and passwords are not stored.',
+    'l.demoSetter': 'Demo: log in as a setter',
+    'l.errEmail': 'Enter a valid email address.', 'l.errPassword': 'The password needs at least 8 characters.',
+    'l.errName': 'Enter a climber name.', 'l.errUnknown': 'No account with this email yet. Create one first.',
+    'l.errExists': 'An account already uses this email. Log in instead.',
+  },
+
+  fr: {
+    'brand.sub': 'escalade de bloc',
+    'tab.boulders': 'Blocs', 'tab.ranking': 'Classement', 'tab.profile': 'Profil', 'tab.set': 'Ouvrir',
+    'map.fitness': 'Fitness', 'map.entrance': 'Entrée',
+    'color.green': 'Vert', 'color.blue': 'Bleu', 'color.yellow': 'Jaune', 'color.red': 'Rouge',
+    'color.white': 'Blanc', 'color.black': 'Noir', 'color.pink': 'Rose',
+    'tag.Crimps': 'Réglettes', 'tag.Slopers': 'Plats', 'tag.Pinches': 'Pinces', 'tag.Pockets': 'Trous',
+    'tag.Volumes': 'Volumes', 'tag.Dyno': 'Jeté', 'tag.Coordination': 'Coordination', 'tag.Balance': 'Équilibre',
+    'tag.Slab': 'Dalle', 'tag.Overhang': 'Dévers', 'tag.Compression': 'Compression', 'tag.Heel hook': 'Crochet talon',
+    'tag.Toe hook': 'Crochet pointe', 'tag.Mantle': 'Rétablissement', 'tag.Endurance': 'Résistance',
+    'hold.start': 'Départ', 'hold.hold': 'Prise', 'hold.top': 'Top', 'hold.startSymbol': 'D', 'hold.topSymbol': 'T',
+    'pts': 'pts', 'new': 'NOUVEAU',
+
+    'b.wholeGym': 'Toute la salle', 'b.tapMap': 'Touchez un mur sur le plan',
+    'f.all': 'Tous les blocs', 'f.todo': 'À faire', 'f.sent': 'Réussis', 'f.new': 'Nouveaux cette semaine', 'f.allStyles': 'Tous les styles',
+    'b.noPhoto': 'Pas encore de photo pour ce secteur.', 'b.tapBoulder': 'Touchez un bloc pour l’ouvrir',
+    'b.count1': '1 bloc', 'b.countN': '{n} blocs', 'b.noMatch': 'Aucun bloc ne correspond à ces filtres.',
+    'b.holds': '{n} prises', 'b.sends': '{n} réussites',
+
+    'm.close': 'Fermer', 'm.like': 'J’aime', 'm.setBy': 'ouvert par {name}',
+    'm.repeats': 'Répétitions', 'm.likes': 'J’aime', 'm.comments': 'Commentaires',
+    'm.edit': 'Modifier prises et cotation', 'm.markSent': 'Marquer réussi', 'm.sent': 'Réussi', 'm.flash': 'Flash', 'm.flashed': 'Flashé',
+    'm.flashHint': 'Flash = réussi du premier coup : +{pct} % de points.',
+    'm.grade': 'Cotation', 'm.setterGrade': 'Cotation ouvreur', 'm.consensus': 'Avis des grimpeurs',
+    'm.votes': '{n} votes', 'm.noVotes': 'Pas encore de votes', 'm.yourVote': 'Votre vote',
+    'm.voteHint': 'Marquez le bloc comme réussi pour voter sa cotation.',
+    'm.info': 'Infos', 'm.noTags': 'Aucun style', 'm.opened': 'Ouvert le', 'm.closes': 'Démontage', 'm.inDays': 'dans {n} jours',
+    'm.sentBy': 'Réussi par {names}', 'm.firstRepeat': 'Aucune répétition. Soyez le premier !',
+    'm.videos': 'Vidéos', 'm.noVideos': 'Pas encore de vidéo.', 'm.uploadVideo': 'Ajouter une vidéo',
+    'm.videoNote': 'Maquette : les vidéos disparaissent au rechargement de la page.', 'm.setterBeta': 'Méthode ouvreur',
+    'm.beta': 'Méthodes & commentaires', 'm.placeholder': 'Partagez votre méthode…', 'm.post': 'Publier',
+
+    'r.note': 'Seuls les blocs actuellement en place comptent. Quand un mur est changé, ses points sortent du classement.',
+    'r.how': 'Calcul des points',
+    'r.howText': 'Les points dépendent de la cotation ouvreur. Chaque couleur vaut environ le double de la précédente, et la sous-cotation progresse vers la couleur suivante. Un flash rapporte {pct} % de plus.',
+
+    'fb.title': 'Retour sur les cotations', 'fb.text': 'Blocs dont l’avis des grimpeurs diffère de la cotation ouvreur (3 votes min.).',
+    'fb.apply': 'Appliquer', 'fb.none': 'Toutes les cotations correspondent au ressenti des grimpeurs.',
+
+    'p.setter': 'Ouvreur', 'p.set': 'Ouverts', 'p.onWalls': 'En place', 'p.totalSends': 'Réussites',
+    'p.myBoulders': 'Mes blocs en place', 'p.rank': 'Rang', 'p.points': 'Points', 'p.sends': 'Réussites', 'p.flashes': 'Flashs',
+    'p.mySends': 'Mes réussites en cours', 'p.noSends': 'Aucune réussite. À vous de grimper !',
+    'p.settings': 'Paramètres', 'p.language': 'Langue', 'p.demoUser': 'Démo : changer d’utilisateur', 'p.logout': 'Se déconnecter',
+    'p.reset': 'Réinitialiser la démo', 'p.resetConfirm': 'Réinitialiser toutes les données de démo ?',
+
+    's.new': 'Ouvrir un nouveau bloc', 's.editing': 'Modification', 's.cancel': 'Annuler', 's.wall': 'Mur',
+    's.upload': 'Nouvelle photo du mur', 's.uploadNote': 'Une nouvelle photo archive les blocs actuels de ce mur.',
+    's.holdType': 'Type de prise', 's.outline': 'Contour', 's.auto': 'Détection auto', 's.circle': 'Rond',
+    's.sensitivity': 'Sensibilité', 's.circleSize': 'Taille du rond', 's.undo': 'Retour', 's.clear': 'Effacer',
+    's.detecting': 'Détection de la prise…', 's.tapHint': 'Touchez une prise pour l’entourer · touchez un contour pour le retirer',
+    's.noPhoto': 'Ajoutez une photo du mur pour commencer.', 's.details': 'Cotation & détails',
+    's.color': 'Couleur', 's.sub': 'Sous-cotation', 's.style': 'Style', 's.opening': 'Date d’ouverture', 's.end': 'Date de fin',
+    's.holds': 'Prises', 's.holdsSummary': '{n} · {s} départ · {t} top', 's.pointsPerSend': 'Points par réussite',
+    's.publish': 'Publier le bloc', 's.save': 'Enregistrer', 's.onWall': 'Sur ce mur ({n})',
+    's.edit': 'Modifier', 's.archive': 'Archiver', 's.noBoulders': 'Aucun bloc pour le moment.',
+    's.errStartTop': 'Ajoutez au moins une prise de départ et une prise de top.',
+    's.errDates': 'La date de fin doit être après la date d’ouverture.',
+    's.notDetected': 'Prise non détectée : un rond a été placé. Ajustez-le avec « Taille du rond » ou changez la sensibilité.',
+    's.noDetector': 'La détection automatique nécessite d’ouvrir la maquette avec start.bat. Un rond a été placé.',
+    'storageFull': 'Le stockage du navigateur est plein (les photos sont stockées localement dans la maquette).',
+
+    'l.tagline': 'Les blocs d’Elys, dans votre poche.', 'l.google': 'Continuer avec Google', 'l.or': 'ou',
+    'l.name': 'Nom de grimpeur', 'l.email': 'E-mail', 'l.password': 'Mot de passe',
+    'l.signup': 'Créer un compte', 'l.login': 'Se connecter',
+    'l.toLogin': 'Déjà un compte ? Se connecter', 'l.toSignup': 'Nouveau ? Créer un compte',
+    'l.demoNote': 'Maquette : aucun vrai compte n’est créé et les mots de passe ne sont pas enregistrés.',
+    'l.demoSetter': 'Démo : se connecter en ouvreur',
+    'l.errEmail': 'Saisissez une adresse e-mail valide.', 'l.errPassword': 'Le mot de passe doit faire au moins 8 caractères.',
+    'l.errName': 'Saisissez un nom de grimpeur.', 'l.errUnknown': 'Aucun compte avec cet e-mail. Créez-en un d’abord.',
+    'l.errExists': 'Un compte utilise déjà cet e-mail. Connectez-vous.',
+  },
+
+  de: {
+    'brand.sub': 'bouldern',
+    'tab.boulders': 'Boulder', 'tab.ranking': 'Rangliste', 'tab.profile': 'Profil', 'tab.set': 'Schrauben',
+    'map.fitness': 'Fitness', 'map.entrance': 'Eingang',
+    'color.green': 'Grün', 'color.blue': 'Blau', 'color.yellow': 'Gelb', 'color.red': 'Rot',
+    'color.white': 'Weiß', 'color.black': 'Schwarz', 'color.pink': 'Pink',
+    'tag.Crimps': 'Leisten', 'tag.Slopers': 'Sloper', 'tag.Pinches': 'Zangen', 'tag.Pockets': 'Löcher',
+    'tag.Volumes': 'Volumen', 'tag.Dyno': 'Dyno', 'tag.Coordination': 'Koordination', 'tag.Balance': 'Balance',
+    'tag.Slab': 'Platte', 'tag.Overhang': 'Überhang', 'tag.Compression': 'Kompression', 'tag.Heel hook': 'Heel Hook',
+    'tag.Toe hook': 'Toe Hook', 'tag.Mantle': 'Mantle', 'tag.Endurance': 'Ausdauer',
+    'hold.start': 'Start', 'hold.hold': 'Griff', 'hold.top': 'Top', 'hold.startSymbol': 'S', 'hold.topSymbol': 'T',
+    'pts': 'Pkt', 'new': 'NEU',
+
+    'b.wholeGym': 'Ganze Halle', 'b.tapMap': 'Tippe auf eine Wand im Plan',
+    'f.all': 'Alle Boulder', 'f.todo': 'Offen', 'f.sent': 'Geschafft', 'f.new': 'Neu diese Woche', 'f.allStyles': 'Alle Stile',
+    'b.noPhoto': 'Noch kein Foto für diesen Sektor.', 'b.tapBoulder': 'Tippe auf einen Boulder, um ihn zu öffnen',
+    'b.count1': '1 Boulder', 'b.countN': '{n} Boulder', 'b.noMatch': 'Keine Boulder für diese Filter.',
+    'b.holds': '{n} Griffe', 'b.sends': '{n} Begehungen',
+
+    'm.close': 'Schließen', 'm.like': 'Gefällt mir', 'm.setBy': 'geschraubt von {name}',
+    'm.repeats': 'Begehungen', 'm.likes': 'Likes', 'm.comments': 'Kommentare',
+    'm.edit': 'Griffe & Grad bearbeiten', 'm.markSent': 'Als geschafft markieren', 'm.sent': 'Geschafft', 'm.flash': 'Flash', 'm.flashed': 'Geflasht',
+    'm.flashHint': 'Flash = im ersten Versuch geschafft: +{pct} % Punkte.',
+    'm.grade': 'Grad', 'm.setterGrade': 'Schrauber-Grad', 'm.consensus': 'Einschätzung der Kletternden',
+    'm.votes': '{n} Stimmen', 'm.noVotes': 'Noch keine Stimmen', 'm.yourVote': 'Deine Stimme',
+    'm.voteHint': 'Markiere den Boulder als geschafft, um über den Grad abzustimmen.',
+    'm.info': 'Infos', 'm.noTags': 'Keine Stil-Tags', 'm.opened': 'Geschraubt am', 'm.closes': 'Abbau', 'm.inDays': 'in {n} Tagen',
+    'm.sentBy': 'Geschafft von {names}', 'm.firstRepeat': 'Noch keine Begehung. Sei die erste Person!',
+    'm.videos': 'Videos', 'm.noVideos': 'Noch keine Videos.', 'm.uploadVideo': 'Video hochladen',
+    'm.videoNote': 'Mockup: Videos verschwinden beim Neuladen der Seite.', 'm.setterBeta': 'Schrauber-Beta',
+    'm.beta': 'Beta & Kommentare', 'm.placeholder': 'Teile deine Beta…', 'm.post': 'Senden',
+
+    'r.note': 'Nur aktuell hängende Boulder zählen. Wird eine Wand umgeschraubt, fallen ihre Punkte aus der Rangliste.',
+    'r.how': 'So funktionieren die Punkte',
+    'r.howText': 'Die Punkte richten sich nach dem Schrauber-Grad. Jede Farbe ist etwa doppelt so viel wert wie die vorherige, Untergrade steigen gleichmäßig zur nächsten Farbe. Ein Flash bringt {pct} % extra.',
+
+    'fb.title': 'Grad-Feedback', 'fb.text': 'Boulder, bei denen die Einschätzung vom Schrauber-Grad abweicht (ab 3 Stimmen).',
+    'fb.apply': 'Übernehmen', 'fb.none': 'Alle Grade passen zum Gefühl der Kletternden.',
+
+    'p.setter': 'Schrauber', 'p.set': 'Geschraubt', 'p.onWalls': 'Hängen', 'p.totalSends': 'Begehungen',
+    'p.myBoulders': 'Meine hängenden Boulder', 'p.rank': 'Rang', 'p.points': 'Punkte', 'p.sends': 'Begehungen', 'p.flashes': 'Flashes',
+    'p.mySends': 'Meine aktuellen Begehungen', 'p.noSends': 'Noch keine Begehungen. Ab an die Wand!',
+    'p.settings': 'Einstellungen', 'p.language': 'Sprache', 'p.demoUser': 'Demo: Nutzer wechseln', 'p.logout': 'Abmelden',
+    'p.reset': 'Demo zurücksetzen', 'p.resetConfirm': 'Alle Demo-Daten zurücksetzen?',
+
+    's.new': 'Neuen Boulder schrauben', 's.editing': 'Bearbeiten', 's.cancel': 'Abbrechen', 's.wall': 'Wand',
+    's.upload': 'Neues Wandfoto hochladen', 's.uploadNote': 'Ein neues Foto archiviert die aktuellen Boulder dieser Wand.',
+    's.holdType': 'Grifftyp', 's.outline': 'Umriss', 's.auto': 'Automatisch', 's.circle': 'Kreis',
+    's.sensitivity': 'Empfindlichkeit', 's.circleSize': 'Kreisgröße', 's.undo': 'Rückgängig', 's.clear': 'Löschen',
+    's.detecting': 'Griff wird erkannt…', 's.tapHint': 'Tippe auf einen Griff zum Umranden · tippe auf einen Umriss zum Entfernen',
+    's.noPhoto': 'Lade ein Foto der Wand hoch, um zu starten.', 's.details': 'Grad & Details',
+    's.color': 'Farbe', 's.sub': 'Untergrad', 's.style': 'Stil', 's.opening': 'Schraubdatum', 's.end': 'Abbaudatum',
+    's.holds': 'Griffe', 's.holdsSummary': '{n} · {s} Start · {t} Top', 's.pointsPerSend': 'Punkte pro Begehung',
+    's.publish': 'Boulder veröffentlichen', 's.save': 'Änderungen speichern', 's.onWall': 'An dieser Wand ({n})',
+    's.edit': 'Bearbeiten', 's.archive': 'Archivieren', 's.noBoulders': 'Noch keine Boulder.',
+    's.errStartTop': 'Füge mindestens einen Start- und einen Topgriff hinzu.',
+    's.errDates': 'Das Abbaudatum muss nach dem Schraubdatum liegen.',
+    's.notDetected': 'Griff nicht erkannt: Stattdessen wurde ein Kreis gesetzt. Passe ihn mit „Kreisgröße“ an oder ändere die Empfindlichkeit.',
+    's.noDetector': 'Die automatische Erkennung braucht start.bat. Stattdessen wurde ein Kreis gesetzt.',
+    'storageFull': 'Der Browserspeicher ist voll (Fotos werden im Mockup lokal gespeichert).',
+
+    'l.tagline': 'Die Boulder der Elys, in deiner Tasche.', 'l.google': 'Weiter mit Google', 'l.or': 'oder',
+    'l.name': 'Klettername', 'l.email': 'E-Mail', 'l.password': 'Passwort',
+    'l.signup': 'Konto erstellen', 'l.login': 'Anmelden',
+    'l.toLogin': 'Schon ein Konto? Anmelden', 'l.toSignup': 'Neu hier? Konto erstellen',
+    'l.demoNote': 'Mockup: Es wird kein echtes Konto erstellt und Passwörter werden nicht gespeichert.',
+    'l.demoSetter': 'Demo: als Schrauber anmelden',
+    'l.errEmail': 'Gib eine gültige E-Mail-Adresse ein.', 'l.errPassword': 'Das Passwort braucht mindestens 8 Zeichen.',
+    'l.errName': 'Gib einen Kletternamen ein.', 'l.errUnknown': 'Kein Konto mit dieser E-Mail. Erstelle zuerst eins.',
+    'l.errExists': 'Diese E-Mail wird bereits verwendet. Melde dich an.',
+  },
+};
+
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = I18N[lang] ? lang : 'en';
+  document.documentElement.lang = currentLang;
+}
+
+function t(key, vars = {}) {
+  const str = I18N[currentLang][key] ?? I18N.en[key] ?? key;
+  return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
+}
+
+const localeOf = () => LANGUAGES.find((l) => l.id === currentLang).locale;

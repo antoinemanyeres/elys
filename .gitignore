@@ -1,0 +1,5 @@
+# Social Boulder screenshots and other reference images stay local.
+/photos/*
+!/photos/elys_exemple_section.jpg
+!/photos/elys_exemple_section_2.jpg
+.vercel
