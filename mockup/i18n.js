@@ -19,7 +19,7 @@ const I18N = {
     'hold.start': 'Start', 'hold.hold': 'Hold', 'hold.top': 'Top', 'hold.startSymbol': 'S', 'hold.topSymbol': 'T',
     'pts': 'pts', 'new': 'NEW',
 
-    'b.wholeGym': 'Whole gym', 'b.tapMap': 'Tap a wall on the map',
+    'b.wholeGym': 'Whole gym', 'b.tapMap': 'Tap a wall on the map', 'b.setHere': 'Set boulders on {name}',
     'f.all': 'All boulders', 'f.todo': 'To do', 'f.sent': 'Sent', 'f.new': 'New this week', 'f.allStyles': 'All styles',
     'b.noPhoto': 'No wall photo for this sector yet.', 'b.tapBoulder': 'Tap a boulder to open it',
     'b.count1': '1 boulder', 'b.countN': '{n} boulders', 'b.noMatch': 'No boulders match these filters.',
@@ -101,7 +101,7 @@ const I18N = {
     'hold.start': 'Départ', 'hold.hold': 'Prise', 'hold.top': 'Top', 'hold.startSymbol': 'D', 'hold.topSymbol': 'T',
     'pts': 'pts', 'new': 'NOUVEAU',
 
-    'b.wholeGym': 'Toute la salle', 'b.tapMap': 'Touchez un mur sur le plan',
+    'b.wholeGym': 'Toute la salle', 'b.tapMap': 'Touchez un mur sur le plan', 'b.setHere': 'Ouvrir des blocs sur {name}',
     'f.all': 'Tous les blocs', 'f.todo': 'À faire', 'f.sent': 'Réussis', 'f.new': 'Nouveaux cette semaine', 'f.allStyles': 'Tous les styles',
     'b.noPhoto': 'Pas encore de photo pour ce secteur.', 'b.tapBoulder': 'Touchez un bloc pour l’ouvrir',
     'b.count1': '1 bloc', 'b.countN': '{n} blocs', 'b.noMatch': 'Aucun bloc ne correspond à ces filtres.',
@@ -183,7 +183,7 @@ const I18N = {
     'hold.start': 'Start', 'hold.hold': 'Griff', 'hold.top': 'Top', 'hold.startSymbol': 'S', 'hold.topSymbol': 'T',
     'pts': 'Pkt', 'new': 'NEU',
 
-    'b.wholeGym': 'Ganze Halle', 'b.tapMap': 'Tippe auf eine Wand im Plan',
+    'b.wholeGym': 'Ganze Halle', 'b.tapMap': 'Tippe auf eine Wand im Plan', 'b.setHere': 'An {name} schrauben',
     'f.all': 'Alle Boulder', 'f.todo': 'Offen', 'f.sent': 'Geschafft', 'f.new': 'Neu diese Woche', 'f.allStyles': 'Alle Stile',
     'b.noPhoto': 'Noch kein Foto für diesen Sektor.', 'b.tapBoulder': 'Tippe auf einen Boulder, um ihn zu öffnen',
     'b.count1': '1 Boulder', 'b.countN': '{n} Boulder', 'b.noMatch': 'Keine Boulder für diese Filter.',

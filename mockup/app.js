@@ -353,6 +353,7 @@
         <div class="sector-title">${sector
           ? `<h2>${esc(sector.name)}</h2><button class="link" data-action="select-sector" data-id="${sector.id}">${t('b.wholeGym')}</button>`
           : `<h2>${t('b.wholeGym')}</h2><span class="muted small">${t('b.tapMap')}</span>`}</div>
+        ${sector && isSetter() ? `<button class="btn primary block set-here" data-action="set-sector" data-id="${sector.id}">${icon('set')} ${t('b.setHere', { name: esc(sector.name) })}</button>` : ''}
         <div class="colorbar">${COLORS.map((c) =>
           `<button data-action="toggle-color" data-id="${c.id}" title="${colorLabel(c.id)}" aria-label="${colorLabel(c.id)}"
             class="${ui.colors.size === 0 || ui.colors.has(c.id) ? 'on' : ''}" style="background:${c.hex}"></button>`).join('')}</div>
@@ -774,6 +775,13 @@
     'tab': (id) => { ui.tab = id; ui.boulderId = null; ui.quickId = null; ui.votePromptId = null; window.scrollTo(0, 0); },
     'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; ui.quickId = null; ui.part = 1; },
     'select-part': (id) => { ui.part = Number(id); ui.quickId = null; },
+    'set-sector': (id) => {
+      const parts = sectorParts(id);
+      const shown = parts[Math.max(0, Math.min(ui.part, parts.length) - 1)];
+      ui.editor = { ...newEditor(id), mode: ui.editor.mode, zoom: ui.editor.zoom, ...(shown ? { part: shown.part || 1 } : {}) };
+      ui.tab = 'set';
+      window.scrollTo(0, 0);
+    },
     'toggle-color': (id) => { ui.colors.has(id) ? ui.colors.delete(id) : ui.colors.add(id); },
     'open-boulder': (id) => { if (ui.quickId) ui.navReplace = true; ui.boulderId = id; ui.quickId = null; },
     'quick-boulder': (id) => {

@@ -152,6 +152,7 @@ nav.tabs button.active { background: var(--accent); color: var(--accent-ink); }
 .gym-name { font-size: 120px; font-weight: 800; letter-spacing: -6px; fill: var(--surface-2); text-anchor: middle; }
 
 .sector-title { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 12px; }
+.btn.set-here { margin: 0 0 12px; }
 
 .colorbar { display: flex; gap: 6px; }
 .colorbar button { flex: 1; height: 30px; border: 0; border-radius: 10px; opacity: .2; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); transition: opacity .15s, transform .15s; }
