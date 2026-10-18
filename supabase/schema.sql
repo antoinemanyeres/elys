@@ -44,7 +44,7 @@ begin
   values (
     new.id,
     left(coalesce(nullif(trim(new.raw_user_meta_data ->> 'name'), ''), split_part(new.email, '@', 1)), 30),
-    case when lower(new.email) = 'antoine.manyeres@gmail.com' then 'admin' else 'climber' end,
+    case when lower(new.email) = 'antoine.manyeres@gmail.com' then 'admin' else 'climber' end::public.user_role,
     coalesce(nullif(new.raw_user_meta_data ->> 'lang', ''), 'en'),
     case when (new.raw_user_meta_data ->> 'terms') = 'true' then now() end
   );
