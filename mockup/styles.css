@@ -328,6 +328,9 @@ textarea { width: 100%; min-height: 70px; margin-top: 12px; padding: 12px; borde
 .two .field { flex: 1; }
 .upload-row { margin-top: 12px; }
 .upload-row .btn { flex: 1; }
+.seg.parts { display: flex; max-width: 100%; overflow-x: auto; }
+.seg.parts button { flex: none; white-space: nowrap; }
+.parts-bar { padding: 10px; border-bottom: 1px solid var(--line); }
 .editing-banner { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; font-weight: 700; }
 .editing-banner .link { margin-left: auto; }
 .tools { display: flex; flex-direction: column; gap: 10px; }

@@ -87,9 +87,10 @@ function seedState() {
   // Demo photos are phone screenshots (768x1689): the wall spans pixel rows 333..1355.
   const IMG_W = 768, TOP = 333, SPAN = 1022;
   const crop = { top: TOP / 1689, bottom: (TOP + SPAN) / 1689 };
+  // A sector can be split into several parts, each with its own photo (e.g. Welle 1/2, Welle 2/2).
   const wallPhotos = [
-    { id: 'p1', sectorId: 'welle', src: '../photos/elys_exemple_section.jpg', w: 768, h: 1689, crop, createdAt: now - 17 * DAY },
-    { id: 'p2', sectorId: 'suedwand', src: '../photos/elys_exemple_section_2.jpg', w: 768, h: 1689, crop, createdAt: now - 3 * DAY },
+    { id: 'p1', sectorId: 'welle', part: 1, src: '../photos/elys_exemple_section.jpg', w: 768, h: 1689, crop, createdAt: now - 17 * DAY },
+    { id: 'p2', sectorId: 'welle', part: 2, src: '../photos/elys_exemple_section_2.jpg', w: 768, h: 1689, crop, createdAt: now - 3 * DAY },
   ];
 
   // Hand-traced hold outline approximated by an ellipse, in source image pixels.
@@ -126,19 +127,19 @@ function seedState() {
       ell('top', 335, 668, 25, 100, 10)]),
     b('b5', 'p1', 'welle', 'green', 4, ['Slopers'], 'u_lena', 17, [
       ell('start', 715, 1060, 45, 55), ell('hold', 675, 720, 26, 90, 12), ell('top', 588, 468, 25, 78, 25)]),
-    b('b6', 'p2', 'suedwand', 'green', 2, ['Volumes'], 'u_max', 3, [
+    b('b6', 'p2', 'welle', 'green', 2, ['Volumes'], 'u_max', 3, [
       ell('start', 190, 1205, 45, 65, -15), ell('hold', 250, 845, 48, 75, 15), ell('hold', 210, 655, 45, 60, 10),
       ell('top', 150, 527, 38, 28, -15)]),
-    b('b7', 'p2', 'suedwand', 'white', 2, ['Balance', 'Heel hook'], 'u_lena', 3, [
+    b('b7', 'p2', 'welle', 'white', 2, ['Balance', 'Heel hook'], 'u_lena', 3, [
       ell('start', 340, 1252, 22, 10), ell('start', 285, 1073, 16, 15), ell('hold', 380, 1075, 16, 22),
       ell('hold', 545, 982, 12, 11), ell('top', 395, 945, 15, 12)]),
-    b('b8', 'p2', 'suedwand', 'pink', 1, ['Crimps', 'Dyno'], 'u_max', 3, [
+    b('b8', 'p2', 'welle', 'pink', 1, ['Crimps', 'Dyno'], 'u_max', 3, [
       ell('start', 612, 860, 7, 7), ell('start', 540, 857, 7, 7), ell('hold', 458, 840, 7, 7),
       ell('hold', 607, 640, 12, 20), ell('top', 452, 545, 55, 38)]),
-    b('b9', 'p2', 'suedwand', 'red', 4, ['Compression'], 'u_lena', 3, [
+    b('b9', 'p2', 'welle', 'red', 4, ['Compression'], 'u_lena', 3, [
       ell('start', 405, 905, 75, 30, 28), ell('hold', 470, 630, 18, 15), ell('hold', 430, 710, 18, 15),
       ell('top', 715, 575, 24, 45)]),
-    b('b10', 'p2', 'suedwand', 'blue', 3, ['Pinches'], 'u_max', 3, [
+    b('b10', 'p2', 'welle', 'blue', 3, ['Pinches'], 'u_max', 3, [
       ell('start', 130, 1010, 65, 32, -20), ell('hold', 45, 925, 14, 16), ell('hold', 140, 742, 20, 15),
       ell('top', 25, 520, 22, 14)]),
   ];

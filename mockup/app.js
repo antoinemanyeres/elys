@@ -1,5 +1,5 @@
 (function () {
-  const STORAGE_KEY = 'elys-mockup-v4';
+  const STORAGE_KEY = 'elys-mockup-v5';
   const DAY = 864e5;
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isoDate = (ms) => new Date(ms).toISOString().slice(0, 10);
@@ -10,13 +10,14 @@
   let state = load();
   setLang(state.lang);
 
+  const currentPart = (sectorId) => { const first = sectorParts(sectorId)[0]; return first ? first.part || 1 : 'new'; };
   const newEditor = (sectorId = 'welle') => ({
-    sectorId, editingId: null, color: 'green', subGrade: 1, tags: [], holds: [],
+    sectorId, part: currentPart(sectorId), editingId: null, color: 'green', subGrade: 1, tags: [], holds: [],
     holdType: 'start', mode: 'auto', tolerance: 30, circleR: 0.035, zoom: 1,
     openedAt: today(), closesAt: isoDate(Date.now() + 60 * DAY), busy: false, notice: '', error: '',
   });
   const ui = {
-    tab: 'boulders', sectorId: 'welle', colors: new Set(), status: 'all', tag: '',
+    tab: 'boulders', sectorId: 'welle', part: 1, colors: new Set(), status: 'all', tag: '',
     boulderId: null, lastModalId: null, editor: newEditor(),
     quickId: null, votePromptId: null, profileColor: null,
     auth: { mode: 'signup', error: '' },
@@ -50,8 +51,28 @@
   const userName = (id) => (state.users.find((u) => u.id === id) || { name: '?' }).name;
   const sectorOf = (id) => SECTORS.find((s) => s.id === id);
   const photoOf = (b) => state.wallPhotos.find((p) => p.id === b.photoId);
-  const currentPhoto = (sectorId) =>
-    state.wallPhotos.filter((p) => p.sectorId === sectorId).sort((a, b) => b.createdAt - a.createdAt)[0];
+  // Current photo of each part of a sector (a large sector can span several photos), ordered by part.
+  function sectorParts(sectorId) {
+    const latest = {};
+    state.wallPhotos.filter((p) => p.sectorId === sectorId).forEach((p) => {
+      const k = p.part || 1;
+      if (!latest[k] || p.createdAt > latest[k].createdAt) latest[k] = p;
+    });
+    return Object.values(latest).filter((p) => !p.retired).sort((a, b) => (a.part || 1) - (b.part || 1));
+  }
+
+  function partLabel(photo) {
+    const parts = sectorParts(photo.sectorId);
+    const i = parts.findIndex((p) => p.id === photo.id);
+    return parts.length > 1 && i >= 0 ? `${i + 1}/${parts.length}` : '';
+  }
+
+  const sectorLabel = (b) => `${sectorOf(b.sectorId).name} ${partLabel(photoOf(b))}`.trim();
+
+  function editorPhoto() {
+    const ed = ui.editor;
+    return ed.part === 'new' ? null : sectorParts(ed.sectorId).find((p) => (p.part || 1) === ed.part) || null;
+  }
   const isActive = (b) => b.openedAt <= today() && (!b.closesAt || b.closesAt >= today());
   const isNew = (b) => daysUntil(b.openedAt) > -7;
   const points = (b) => pointsFor(b.color, b.subGrade);
@@ -304,7 +325,7 @@
       ${thumb(b)}
       <div class="mid">
         <div class="line1">${gradePill(b.color, b.subGrade)}${isNew(b) ? `<span class="new">${t('new')}</span>` : ''}</div>
-        <div class="muted small">${esc(sectorOf(b.sectorId).name)} · ${t('b.holds', { n: b.holds.length })}</div>
+        <div class="muted small">${esc(sectorLabel(b))} · ${t('b.holds', { n: b.holds.length })}</div>
         <div>${tagList(b.tags.slice(0, 2))}</div>
       </div>
       <div class="side">
@@ -319,7 +340,11 @@
     let list = state.boulders.filter(isActive);
     if (sector) list = list.filter((b) => b.sectorId === sector.id);
     const visible = list.filter(passesFilters).sort((a, b) => points(a) - points(b));
-    const photo = sector && currentPhoto(sector.id);
+    const parts = sector ? sectorParts(sector.id) : [];
+    const partIdx = Math.max(0, Math.min(ui.part, parts.length) - 1);
+    const photo = parts[partIdx] || null;
+    const partTabs = parts.length > 1 ? `<div class="parts-bar"><div class="seg parts">${parts.map((p, i) =>
+      `<button class="${i === partIdx ? 'on' : ''}" data-action="select-part" data-id="${i + 1}">${esc(sector.name)} ${i + 1}/${parts.length}</button>`).join('')}</div></div>` : '';
     const opt = (v, key) => `<option value="${v}" ${ui.status === v ? 'selected' : ''}>${t(key)}</option>`;
 
     return `
@@ -337,7 +362,7 @@
             `<option value="${esc(tag)}" ${ui.tag === tag ? 'selected' : ''}>${esc(tagLabel(tag))}</option>`).join('')}</select>
         </div>
       </section>
-      ${photo ? `<section class="card flush">${wall(photo, visible.filter((b) => b.photoId === photo.id), { highlight: ui.quickId, action: 'quick-boulder' })}
+      ${photo ? `<section class="card flush">${partTabs}${wall(photo, visible.filter((b) => b.photoId === photo.id), { highlight: ui.quickId, action: 'quick-boulder' })}
           <div class="legend"><span><i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}</span><span><i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}</span><span class="muted">${t('b.tapBoulder')}</span></div></section>`
         : sector ? `<section class="card empty">${t('b.noPhoto')}</section>` : ''}
       <div class="list-head">${visible.length === 1 ? t('b.count1') : t('b.countN', { n: visible.length })}</div>
@@ -375,7 +400,7 @@
       <div class="quick ${ui.lastQuickId === b.id ? '' : 'enter'}" role="dialog">
         <div class="quick-head">${thumb(b, 52)}
           <div class="mid">${gradePill(b.color, b.subGrade)}
-            <div class="muted small">${esc(sectorOf(b.sectorId).name)} · ${t('b.sends', { n: sendsOf(b).length })}</div></div>
+            <div class="muted small">${esc(sectorLabel(b))} · ${t('b.sends', { n: sendsOf(b).length })}</div></div>
           <div class="pts">${points(b)}<small>${t('pts')}</small>
             <div class="flash-mark small">${icon('flash')} ${sendPointsFor(b.color, b.subGrade, true)}</div></div>
         </div>
@@ -427,7 +452,7 @@
       <div class="sheet-body">
         <div class="title-row">
           <div>${gradePill(b.color, b.subGrade)}${isNew(b) ? `<span class="new">${t('new')}</span>` : ''}
-            <div class="muted small">${esc(sectorOf(b.sectorId).name)} · ${t('m.setBy', { name: esc(userName(b.setterId)) })}</div></div>
+            <div class="muted small">${esc(sectorLabel(b))} · ${t('m.setBy', { name: esc(userName(b.setterId)) })}</div></div>
           <div class="pts big">${points(b)}<small>${t('pts')}</small></div>
         </div>
         <div class="stats">
@@ -551,7 +576,7 @@
       <p class="muted small">${t('fb.text')}</p>
       ${list.map(({ b, cons }) => `<div class="row plain">${thumb(b, 48)}
         <div class="mid"><div class="small">${gradePill(b.color, b.subGrade)} <span class="muted">→</span> ${gradePill(cons.color, cons.subGrade)}</div>
-          <div class="muted small">${esc(sectorOf(b.sectorId).name)} · ${t('m.votes', { n: cons.count })}</div></div>
+          <div class="muted small">${esc(sectorLabel(b))} · ${t('m.votes', { n: cons.count })}</div></div>
         <button class="btn small" data-action="apply-consensus" data-id="${b.id}">${t('fb.apply')}</button></div>`).join('')
         || `<p class="muted small">${t('fb.none')}</p>`}
     </section>`;
@@ -597,25 +622,34 @@
   // ---------- Setter editor ----------
   function setterView() {
     const ed = ui.editor;
-    const photo = currentPhoto(ed.sectorId);
+    const photo = editorPhoto();
+    const parts = sectorParts(ed.sectorId);
     const onWall = photo ? state.boulders.filter((b) => b.photoId === photo.id && isActive(b)) : [];
     const editing = ed.editingId && state.boulders.find((b) => b.id === ed.editingId);
     const seg = (action, value, current, label) =>
       `<button class="${value === current ? 'on' : ''}" data-action="${action}" data-id="${value}">${label}</button>`;
     const starts = ed.holds.filter((h) => h.type === 'start').length;
     const tops = ed.holds.filter((h) => h.type === 'top').length;
+    const uploadButtons = `<div class="two upload-row">
+          <label class="btn ghost">${t('s.camera')}
+            <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
+          <label class="btn ghost">${t('s.gallery')}
+            <input type="file" accept="image/*" data-change="ed-photo" hidden></label></div>`;
+    const partTabs = `<div class="seg parts">${parts.map((p, i) =>
+      `<button class="${ed.part === (p.part || 1) ? 'on' : ''}" data-action="ed-part" data-id="${p.part || 1}" ${editing ? 'disabled' : ''}>${i + 1}/${parts.length}</button>`).join('')}
+      ${editing ? '' : `<button class="${ed.part === 'new' ? 'on' : ''}" data-action="ed-part" data-id="new">${t('s.addPart')}</button>`}</div>`;
+    const uploadSection = editing ? '' : ed.part === 'new'
+      ? `<p class="muted small">${t('s.newPartHint', { i: parts.length + 1 })}</p>${uploadButtons}`
+      : `${uploadButtons}<p class="muted small">${t('s.uploadNote')}</p>
+        <button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>`;
 
     return `
       <section class="card">
         ${editing ? `<div class="editing-banner">${t('s.editing')} ${gradePill(editing.color, editing.subGrade)}<button class="link" data-action="cancel-edit">${t('s.cancel')}</button></div>` : `<h3>${t('s.new')}</h3>`}
         <label class="field"><span>${t('s.wall')}</span><select data-change="ed-sector" ${editing ? 'disabled' : ''}>${SECTORS.map((s) =>
           `<option value="${s.id}" ${s.id === ed.sectorId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
-        ${editing ? '' : `<div class="two upload-row">
-          <label class="btn ghost">${t('s.camera')}
-            <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
-          <label class="btn ghost">${t('s.gallery')}
-            <input type="file" accept="image/*" data-change="ed-photo" hidden></label></div>
-          <p class="muted small">${t('s.uploadNote')}</p>`}
+        <div class="field"><span>${t('s.parts')}</span>${partTabs}</div>
+        ${uploadSection}
       </section>
 
       ${photo ? `
@@ -701,7 +735,7 @@
 
   function placeHold(e, el) {
     const ed = ui.editor;
-    const photo = currentPhoto(ed.sectorId);
+    const photo = editorPhoto();
     if (!photo || ed.busy) return false;
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
@@ -734,13 +768,17 @@
 
   const actions = {
     'tab': (id) => { ui.tab = id; ui.boulderId = null; ui.quickId = null; ui.votePromptId = null; window.scrollTo(0, 0); },
-    'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; ui.quickId = null; },
+    'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; ui.quickId = null; ui.part = 1; },
+    'select-part': (id) => { ui.part = Number(id); ui.quickId = null; },
     'toggle-color': (id) => { ui.colors.has(id) ? ui.colors.delete(id) : ui.colors.add(id); },
     'open-boulder': (id) => { ui.boulderId = id; ui.quickId = null; },
     'quick-boulder': (id) => {
       if (isSetter()) { ui.boulderId = id; return; }
       ui.quickId = ui.quickId === id ? null : id;
       ui.votePromptId = null;
+      const b = state.boulders.find((x) => x.id === id);
+      const i = sectorParts(b.sectorId).findIndex((p) => p.id === b.photoId);
+      if (b.sectorId === ui.sectorId && i >= 0) ui.part = i + 1;
     },
     'close-quick': () => { ui.quickId = null; ui.votePromptId = null; },
     'profile-color': (id) => { ui.profileColor = ui.profileColor === id ? null : id; },
@@ -815,7 +853,7 @@
     'edit-boulder': (id) => {
       const b = state.boulders.find((x) => x.id === id);
       ui.editor = {
-        ...newEditor(b.sectorId), editingId: b.id, color: b.color, subGrade: b.subGrade, tags: [...b.tags],
+        ...newEditor(b.sectorId), editingId: b.id, part: photoOf(b).part || 1, color: b.color, subGrade: b.subGrade, tags: [...b.tags],
         holds: JSON.parse(JSON.stringify(b.holds)), openedAt: b.openedAt, closesAt: b.closesAt || '', holdType: 'hold',
       };
       ui.tab = 'set';
@@ -823,6 +861,20 @@
       window.scrollTo(0, 0);
     },
     'cancel-edit': () => { ui.editor = newEditor(ui.editor.sectorId); },
+    'ed-part': (id) => {
+      const ed = ui.editor;
+      ui.editor = { ...newEditor(ed.sectorId), part: id === 'new' ? 'new' : Number(id), mode: ed.mode, zoom: ed.zoom,
+        tolerance: ed.tolerance, circleR: ed.circleR, color: ed.color, subGrade: ed.subGrade, tags: ed.tags };
+    },
+    'remove-part': () => {
+      const photo = editorPhoto();
+      if (!photo || !confirm(t('s.removeConfirm'))) return false;
+      const yesterday = isoDate(Date.now() - DAY);
+      state.boulders.filter((b) => b.photoId === photo.id && isActive(b)).forEach((b) => { b.closesAt = yesterday; });
+      photo.retired = true;
+      ui.editor = newEditor(ui.editor.sectorId);
+      save();
+    },
     'ed-color': (id) => { ui.editor.color = id; },
     'ed-sub': (id) => { ui.editor.subGrade = Number(id); },
     'ed-tag': (id) => {
@@ -838,7 +890,7 @@
     'place-hold': (id, e, el) => placeHold(e, el),
     'save-boulder': () => {
       const ed = ui.editor;
-      const photo = currentPhoto(ed.sectorId);
+      const photo = editorPhoto();
       if (!photo) return false;
       if (!ed.holds.some((h) => h.type === 'start') || !ed.holds.some((h) => h.type === 'top')) {
         ed.error = 's.errStartTop';
@@ -857,7 +909,7 @@
       } else {
         state.boulders.push({ id: 'b' + Date.now(), photoId: photo.id, sectorId: ed.sectorId, setterId: state.currentUserId, ...fields });
       }
-      ui.editor = { ...newEditor(ed.sectorId), zoom: ed.zoom, mode: ed.mode, tolerance: ed.tolerance, circleR: ed.circleR };
+      ui.editor = { ...newEditor(ed.sectorId), part: ed.part, zoom: ed.zoom, mode: ed.mode, tolerance: ed.tolerance, circleR: ed.circleR };
       save();
     },
     'archive-boulder': (id) => {
@@ -902,17 +954,22 @@
         canvas.width = Math.round(img.width * k);
         canvas.height = Math.round(img.height * k);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        const sectorId = ui.editor.sectorId;
-        const old = currentPhoto(sectorId);
-        if (old) {
+        const ed = ui.editor;
+        const sectorId = ed.sectorId;
+        let part;
+        if (ed.part === 'new') {
+          part = Math.max(0, ...sectorParts(sectorId).map((p) => p.part || 1)) + 1;
+        } else {
+          part = ed.part;
+          const old = editorPhoto();
           const yesterday = isoDate(Date.now() - DAY);
-          state.boulders.filter((b) => b.photoId === old.id && isActive(b)).forEach((b) => { b.closesAt = yesterday; });
+          if (old) state.boulders.filter((b) => b.photoId === old.id && isActive(b)).forEach((b) => { b.closesAt = yesterday; });
         }
         state.wallPhotos.push({
-          id: 'p' + Date.now(), sectorId, src: canvas.toDataURL('image/jpeg', 0.85),
+          id: 'p' + Date.now(), sectorId, part, src: canvas.toDataURL('image/jpeg', 0.85),
           w: canvas.width, h: canvas.height, crop: { top: 0, bottom: 1 }, createdAt: Date.now(),
         });
-        ui.editor = { ...newEditor(sectorId), mode: ui.editor.mode };
+        ui.editor = { ...newEditor(sectorId), part, mode: ed.mode };
         save();
         render();
       };
