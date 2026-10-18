@@ -299,26 +299,37 @@
   }
 
   // ---------- Map ----------
+  const polyPoints = (poly) => poly.map(([x, y]) => `${x},${y}`).join(' ');
+  const centroid = (poly) => [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length];
+
+  function mapLabel(shape, text) {
+    const [x, y, rot = 0, size = 22] = shape.label || [...centroid(shape.poly), 0, 22];
+    return `<text x="${x}" y="${y}" style="font-size:${size}px" transform="rotate(${rot} ${x} ${y})">${text}</text>`;
+  }
+
   function gymMap(selectedId) {
     const counts = {};
     activeBoulders().forEach((b) => { counts[b.sectorId] = (counts[b.sectorId] || 0) + 1; });
-    const zones = SECTORS.map((s) => {
-      const [x, y, w, h] = s.rect;
+    const [vx, vy, vw, vh] = GYM_MAP.viewBox;
+    const layers = GYM_MAP.shapes.map((s) => {
+      if (s.kind === 'outline') return `<polygon class="map-outline" points="${polyPoints(s.poly)}"/>`;
+      if (s.kind === 'floor') return `<polygon class="map-floor" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}" points="${polyPoints(s.poly)}"/>`;
+      if (s.kind === 'room') {
+        return `<g class="map-room" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}"><polygon points="${polyPoints(s.poly)}"/>${mapLabel(s, esc(t(s.name)))}</g>`;
+      }
       const n = counts[s.id] || 0;
+      const [cx, cy] = centroid(s.poly);
       return `<g class="zone ${s.id === selectedId ? 'selected' : ''}" data-action="select-sector" data-id="${s.id}" style="--area:${AREA_COLORS[s.area]}">
-        <rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${h - 4}" rx="10"></rect>
-        <text x="${x + w / 2}" y="${y + h / 2}">${esc(s.name)}</text>
-        ${n ? `<circle cx="${x + w - 16}" cy="${y + 16}" r="10"></circle><text class="count" x="${x + w - 16}" y="${y + 16}">${n}</text>` : ''}
+        <polygon class="hit" points="${polyPoints(s.poly)}"/><polygon points="${polyPoints(s.poly)}"/>
+        ${mapLabel(s, esc(s.name))}
+        ${n ? `<circle cx="${cx}" cy="${cy}" r="15"></circle><text class="count" x="${cx}" y="${cy}">${n}</text>` : ''}
       </g>`;
     }).join('');
-    return `<svg class="map" viewBox="0 0 700 770" role="img" aria-label="Gym map">
-      <rect class="static" x="22" y="522" width="96" height="76" rx="10"></rect>
-      <text class="static-label" x="70" y="560">${t('map.fitness')}</text>
-      <rect class="static" x="122" y="522" width="196" height="76" rx="10"></rect>
-      <text class="static-label" x="220" y="560">${t('map.entrance')}</text>
-      <text class="gym-name" x="510" y="320">ELYS</text>
-      ${zones}
-    </svg>`;
+    return `<div class="map-wrap ${ui.mapZoom ? 'zoomed' : ''}">
+      <button class="icon-chip map-zoom" data-action="map-zoom" aria-label="${t('map.zoom')}">${ui.mapZoom ? '\u2212' : '+'}</button>
+      <div class="map-scroll"><svg class="map" viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="${t('map.title')}">
+        <text class="gym-name" x="${vx + vw * 0.62}" y="${vy + vh * 0.42}">ELYS</text>${layers}</svg></div>
+    </div>`;
   }
 
   // ---------- Layout ----------
@@ -1282,6 +1293,7 @@
     },
     'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; ui.quickId = null; ui.part = 1; },
     'select-part': (id) => { ui.part = Number(id); ui.quickId = null; },
+    'map-zoom': () => { ui.mapZoom = !ui.mapZoom; },
     'set-sector': (id) => {
       const parts = sectorParts(id);
       const shown = parts[Math.max(0, Math.min(ui.part, parts.length) - 1)];

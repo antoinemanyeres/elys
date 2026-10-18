@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ELYS – map editor</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #11132c; color: #f2f3fa; display: flex; height: 100vh; }
+    aside { width: 330px; flex: none; padding: 14px; overflow-y: auto; background: #1a1d3f; border-right: 1px solid #2f3470; font-size: 13px; }
+    main { flex: 1; overflow: auto; position: relative; background: #0b0d22; }
+    h1 { margin: 0 0 4px; font-size: 18px; } h2 { margin: 18px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: #9ba1c6; }
+    p.help { margin: 4px 0; color: #9ba1c6; line-height: 1.4; }
+    button, select, input, textarea { font: inherit; color: inherit; }
+    button { padding: 7px 10px; border: 1px solid #2f3470; border-radius: 8px; background: #24285a; cursor: pointer; }
+    button.on { background: #2ed3c6; color: #11132c; border-color: #2ed3c6; font-weight: 700; }
+    button.danger { color: #ff8aa0; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; align-items: center; }
+    label { display: block; margin: 6px 0; } label span { display: block; color: #9ba1c6; margin-bottom: 3px; }
+    input, select, textarea { width: 100%; padding: 6px 8px; border: 1px solid #2f3470; border-radius: 8px; background: #11132c; }
+    textarea { height: 140px; font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+    #list { max-height: 230px; overflow-y: auto; border: 1px solid #2f3470; border-radius: 8px; }
+    #list div { padding: 5px 8px; cursor: pointer; border-bottom: 1px solid #2f3470; display: flex; justify-content: space-between; }
+    #list div.sel { background: #2ed3c6; color: #11132c; font-weight: 700; }
+    #list small { opacity: .7; }
+    svg { display: block; touch-action: none; }
+    .shape { fill-opacity: .45; stroke-width: 2; cursor: pointer; }
+    .shape.outline { fill: none; stroke: #fff; stroke-dasharray: 6 4; }
+    .shape.sel { fill-opacity: .7; stroke: #2ed3c6; stroke-width: 3; }
+    .label { font-weight: 800; text-anchor: middle; dominant-baseline: middle; fill: #fff; paint-order: stroke; stroke: #000; stroke-width: 3px; pointer-events: none; }
+    .handle { fill: #fff; stroke: #e8395f; stroke-width: 3; cursor: move; }
+    .handle.first { fill: #e8395f; }
+    .label-handle { fill: #2ed3c6; stroke: #11132c; stroke-width: 3; cursor: move; }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>ELYS map editor</h1>
+    <p class="help">Adjust the gym map on top of the official plan, then export it and send the file.</p>
+
+    <h2>Background</h2>
+    <div class="row"><input type="file" id="bg-file" accept="image/*"></div>
+    <label><span>Plan opacity</span><input type="range" id="bg-op" min="0" max="1" step="0.05" value="0.6"></label>
+    <label><span>Zoom</span><input type="range" id="zoom" min="0.5" max="3" step="0.1" value="1"></label>
+
+    <h2>Shapes</h2>
+    <div id="list"></div>
+    <div class="row">
+      <button id="add-sector">+ Wall sector</button><button id="add-room">+ Room</button><button id="add-floor">+ Floor</button>
+    </div>
+
+    <h2>Tool</h2>
+    <div class="row" id="modes">
+      <button data-mode="move" class="on">Move points</button><button data-mode="add">Add points</button><button data-mode="label">Place label</button>
+    </div>
+    <p class="help"><b>Move points</b>: drag the white dots. Double-click a dot to delete it.<br>
+      <b>Add points</b>: click on the plan to insert a point on the nearest edge.<br>
+      <b>Place label</b>: click where the name should go (or drag the turquoise dot).</p>
+
+    <div id="props"></div>
+
+    <h2>Export / import</h2>
+    <div class="row"><button id="export">Export</button><button id="download">Download map-data.js</button><button id="copy">Copy</button></div>
+    <textarea id="io" placeholder="Click Export, or paste an exported map here and click Import."></textarea>
+    <div class="row"><button id="import">Import</button><button id="reset" class="danger">Reset to app version</button></div>
+    <p class="help">Your work is saved automatically in this browser.</p>
+  </aside>
+  <main><svg id="svg"></svg></main>
+
+  <script src="js/map-data.js"></script>
+  <script>
+    const NS = 'http://www.w3.org/2000/svg';
+    const AREAS = { main: '#c49a7a', labyrinth: '#5ec8f2', welle: '#f27aa8', board: '#9bd46a', none: '#8b93a7' };
+    const KIND_COLOR = { floor: 0.12, room: 0.25 };
+    const DRAFT_KEY = 'elys-map-draft';
+    const svg = document.getElementById('svg');
+    let map = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') || JSON.parse(JSON.stringify(GYM_MAP));
+    let sel = map.shapes.findIndex((s) => s.kind === 'sector');
+    let mode = 'move';
+    let bg = { src: '../photos/elys_plan_salle.jpg', w: 1080, h: 2376 };
+    let drag = null;
+
+    const save = () => localStorage.setItem(DRAFT_KEY, JSON.stringify(map));
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const centroid = (p) => [p.reduce((a, q) => a + q[0], 0) / p.length, p.reduce((a, q) => a + q[1], 0) / p.length];
+    const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+    const round = (v) => Math.round(v);
+
+    function svgPoint(e) {
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return [round(p.x), round(p.y)];
+    }
+
+    function draw() {
+      const [vx, vy, vw, vh] = map.viewBox;
+      const zoom = +document.getElementById('zoom').value;
+      svg.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+      svg.setAttribute('width', vw * zoom);
+      svg.setAttribute('height', vh * zoom);
+      let html = `<image href="${esc(bg.src)}" x="0" y="0" width="${bg.w}" height="${bg.h}" opacity="${document.getElementById('bg-op').value}"/>`;
+      map.shapes.forEach((s, i) => {
+        const pts = s.poly.map((p) => p.join(',')).join(' ');
+        const color = AREAS[s.area] || AREAS.none;
+        const op = KIND_COLOR[s.kind] ?? 0.45;
+        html += `<polygon class="shape ${s.kind} ${i === sel ? 'sel' : ''}" data-i="${i}" points="${pts}" fill="${color}" stroke="${color}" style="fill-opacity:${i === sel ? 0.7 : op}"/>`;
+        if (s.kind === 'sector' || s.kind === 'room') {
+          const [x, y, rot = 0, size = 22] = s.label || [...centroid(s.poly), 0, 22];
+          html += `<text class="label" x="${x}" y="${y}" style="font-size:${size}px" transform="rotate(${rot} ${x} ${y})">${esc(s.kind === 'room' ? s.name.replace('map.', '') : s.name)}</text>`;
+        }
+      });
+      const s = map.shapes[sel];
+      if (s) {
+        s.poly.forEach(([x, y], k) => { html += `<circle class="handle ${k === 0 ? 'first' : ''}" data-k="${k}" cx="${x}" cy="${y}" r="7"/>`; });
+        if (s.kind === 'sector' || s.kind === 'room') {
+          const [x, y] = s.label || centroid(s.poly);
+          html += `<circle class="label-handle" cx="${x}" cy="${y}" r="7"/>`;
+        }
+      }
+      svg.innerHTML = html;
+      drawList();
+      drawProps();
+      save();
+    }
+
+    function drawList() {
+      document.getElementById('list').innerHTML = map.shapes.map((s, i) =>
+        `<div data-i="${i}" class="${i === sel ? 'sel' : ''}">${esc(s.kind === 'sector' ? s.name : s.kind === 'room' ? s.name.replace('map.', '') : s.kind)}<small>${s.kind}${s.id ? ' \u00b7 ' + esc(s.id) : ''}</small></div>`).join('');
+    }
+
+    function drawProps() {
+      const s = map.shapes[sel];
+      const el = document.getElementById('props');
+      if (!s) { el.innerHTML = ''; return; }
+      const lab = s.label || [...centroid(s.poly).map(round), 0, 22];
+      const areaOpts = Object.keys(AREAS).map((a) => `<option ${s.area === a ? 'selected' : ''}>${a}</option>`).join('');
+      el.innerHTML = `<h2>Selected shape</h2>
+        ${s.kind === 'sector' ? `<label><span>Name (shown in the app)</span><input data-prop="name" value="${esc(s.name)}"></label>
+          <label><span>Id (stored with the boulders \u2013 do not change for existing walls)</span><input data-prop="id" value="${esc(s.id)}" ${s.isNew ? '' : 'readonly'}></label>` : ''}
+        ${s.kind === 'room' ? `<label><span>Name (translation key or text)</span><input data-prop="name" value="${esc(s.name)}"></label>` : ''}
+        ${s.kind !== 'outline' ? `<label><span>Color group</span><select data-prop="area">${areaOpts}</select></label>` : ''}
+        ${s.kind === 'sector' || s.kind === 'room' ? `<div class="row">
+          <label style="flex:1"><span>Label angle</span><input type="number" data-label="2" value="${lab[2] || 0}" step="5"></label>
+          <label style="flex:1"><span>Label size</span><input type="number" data-label="3" value="${lab[3] || 22}" min="8" max="60"></label></div>` : ''}
+        <div class="row"><button id="del-last">Delete last point</button><button id="del-shape" class="danger">Delete shape</button></div>
+        <p class="help">${s.poly.length} points</p>`;
+    }
+
+    function nearestEdge(poly, [x, y]) {
+      let best = poly.length, bestD = Infinity;
+      for (let i = 0; i < poly.length; i++) {
+        const [ax, ay] = poly[i], [bx, by] = poly[(i + 1) % poly.length];
+        const dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy || 1;
+        const tt = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len));
+        const d = Math.hypot(ax + tt * dx - x, ay + tt * dy - y);
+        if (d < bestD) { bestD = d; best = i + 1; }
+      }
+      return best;
+    }
+
+    function addShape(kind) {
+      const [vx, vy, vw, vh] = map.viewBox;
+      const cx = round(vx + vw / 2), cy = round(vy + vh / 2);
+      const poly = [[cx - 40, cy - 40], [cx + 40, cy - 40], [cx + 40, cy + 40], [cx - 40, cy + 40]];
+      const shape = kind === 'sector'
+        ? { kind, id: 'newwall' + Date.now().toString(36).slice(-3), name: 'New wall', area: 'main', poly, isNew: true }
+        : kind === 'room' ? { kind, name: 'New room', area: 'none', poly } : { kind, area: 'main', poly };
+      map.shapes.push(shape);
+      sel = map.shapes.length - 1;
+      draw();
+    }
+
+    // Short, readable export: one shape per line.
+    function exportText() {
+      const clean = map.shapes.map(({ isNew, ...s }) => s);
+      const lines = clean.map((s) => '    ' + JSON.stringify(s).replace(/"(\w+)":/g, '$1: ').replace(/"/g, "'") + ',');
+      return `// Gym map traced from the official "Hallenplan" (coordinates = pixels of photos/elys_plan_salle.jpg, 1080 px wide).
+// Edit it visually with app/map-editor.html, then replace this file with the exported one.
+const GYM_MAP = {
+  viewBox: ${JSON.stringify(map.viewBox)},
+  shapes: [
+${lines.join('\n')}
+  ],
+};
+`;
+    }
+
+    // ---------- Events ----------
+    svg.addEventListener('pointerdown', (e) => {
+      const s = map.shapes[sel];
+      if (e.target.classList.contains('handle')) {
+        drag = { type: 'point', k: +e.target.dataset.k };
+      } else if (e.target.classList.contains('label-handle')) {
+        drag = { type: 'label' };
+      } else if (mode === 'add' && s) {
+        const p = svgPoint(e);
+        s.poly.splice(nearestEdge(s.poly, p), 0, p);
+        draw();
+        return;
+      } else if (mode === 'label' && s && (s.kind === 'sector' || s.kind === 'room')) {
+        const [x, y] = svgPoint(e);
+        const old = s.label || [0, 0, 0, 22];
+        s.label = [x, y, old[2] || 0, old[3] || 22];
+        draw();
+        return;
+      } else if (e.target.dataset.i !== undefined) {
+        sel = +e.target.dataset.i;
+        draw();
+        return;
+      } else return;
+      svg.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    svg.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const s = map.shapes[sel];
+      const p = svgPoint(e);
+      if (drag.type === 'point') s.poly[drag.k] = p;
+      else { const old = s.label || [0, 0, 0, 22]; s.label = [p[0], p[1], old[2] || 0, old[3] || 22]; }
+      draw();
+    });
+    svg.addEventListener('pointerup', () => { drag = null; });
+    svg.addEventListener('dblclick', (e) => {
+      const s = map.shapes[sel];
+      if (e.target.classList.contains('handle') && s.poly.length > 3) { s.poly.splice(+e.target.dataset.k, 1); draw(); }
+    });
+
+    document.getElementById('list').addEventListener('click', (e) => {
+      const d = e.target.closest('[data-i]');
+      if (d) { sel = +d.dataset.i; draw(); }
+    });
+    document.getElementById('modes').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mode]');
+      if (!b) return;
+      mode = b.dataset.mode;
+      document.querySelectorAll('#modes button').forEach((x) => x.classList.toggle('on', x === b));
+    });
+    document.getElementById('props').addEventListener('change', (e) => {
+      const s = map.shapes[sel];
+      if (e.target.dataset.prop === 'id') s.id = slug(e.target.value) || s.id;
+      else if (e.target.dataset.prop) {
+        s[e.target.dataset.prop] = e.target.value;
+        if (e.target.dataset.prop === 'name' && s.kind === 'sector' && s.isNew) s.id = slug(e.target.value) || s.id;
+      }
+      if (e.target.dataset.label) {
+        const lab = s.label || [...centroid(s.poly).map(round), 0, 22];
+        lab[+e.target.dataset.label] = +e.target.value;
+        s.label = lab;
+      }
+      draw();
+    });
+    document.getElementById('props').addEventListener('click', (e) => {
+      const s = map.shapes[sel];
+      if (e.target.id === 'del-last' && s.poly.length > 3) { s.poly.pop(); draw(); }
+      if (e.target.id === 'del-shape' && confirm('Delete this shape?')) { map.shapes.splice(sel, 1); sel = -1; draw(); }
+    });
+    document.getElementById('add-sector').onclick = () => addShape('sector');
+    document.getElementById('add-room').onclick = () => addShape('room');
+    document.getElementById('add-floor').onclick = () => addShape('floor');
+    document.getElementById('bg-op').oninput = draw;
+    document.getElementById('zoom').oninput = draw;
+    document.getElementById('bg-file').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { bg = { src: url, w: img.naturalWidth, h: img.naturalHeight }; draw(); };
+      img.src = url;
+    };
+    document.getElementById('export').onclick = () => { document.getElementById('io').value = exportText(); };
+    document.getElementById('copy').onclick = async () => {
+      document.getElementById('io').value = exportText();
+      await navigator.clipboard.writeText(exportText());
+      alert('Copied! Paste it in a message.');
+    };
+    document.getElementById('download').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([exportText()], { type: 'text/javascript' }));
+      a.download = 'map-data.js';
+      a.click();
+    };
+    document.getElementById('import').onclick = () => {
+      try {
+        const text = document.getElementById('io').value;
+        const body = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+        // Turn the exported JS object into JSON (quotes and keys) instead of evaluating it.
+        const json = body.replace(/'/g, '"').replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":').replace(/,(\s*[\]}])/g, '$1');
+        map = JSON.parse(json);
+        sel = 0;
+        draw();
+      } catch (err) { alert('Could not read this map: ' + err.message); }
+    };
+    document.getElementById('reset').onclick = () => {
+      if (!confirm('Discard your changes and reload the map used by the app?')) return;
+      localStorage.removeItem(DRAFT_KEY);
+      map = JSON.parse(JSON.stringify(GYM_MAP));
+      sel = 0;
+      draw();
+    };
+    draw();
+  </script>
+</body>
+</html>

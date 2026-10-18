@@ -9,7 +9,7 @@ const I18N = {
   en: {
     'brand.sub': 'bouldering',
     'tab.boulders': 'Boulders', 'tab.ranking': 'Ranking', 'tab.profile': 'Profile', 'tab.set': 'Set',
-    'map.fitness': 'Fitness', 'map.entrance': 'Entrance',
+    'map.fitness': 'Fitness', 'map.entrance': 'Entrance', 'map.title': 'Gym map', 'map.zoom': 'Zoom the map',
     'color.green': 'Green', 'color.blue': 'Blue', 'color.yellow': 'Yellow', 'color.red': 'Red',
     'color.white': 'White', 'color.black': 'Black', 'color.pink': 'Pink',
     'tag.Crimps': 'Crimps', 'tag.Slopers': 'Slopers', 'tag.Pinches': 'Pinches', 'tag.Pockets': 'Pockets',
@@ -167,7 +167,7 @@ const I18N = {
   fr: {
     'brand.sub': 'escalade de bloc',
     'tab.boulders': 'Blocs', 'tab.ranking': 'Classement', 'tab.profile': 'Profil', 'tab.set': 'Ouvrir',
-    'map.fitness': 'Fitness', 'map.entrance': 'Entrée',
+    'map.fitness': 'Fitness', 'map.entrance': 'Entrée', 'map.title': 'Plan de la salle', 'map.zoom': 'Zoomer le plan',
     'color.green': 'Vert', 'color.blue': 'Bleu', 'color.yellow': 'Jaune', 'color.red': 'Rouge',
     'color.white': 'Blanc', 'color.black': 'Noir', 'color.pink': 'Rose',
     'tag.Crimps': 'Réglettes', 'tag.Slopers': 'Plats', 'tag.Pinches': 'Pinces', 'tag.Pockets': 'Trous',
@@ -325,7 +325,7 @@ const I18N = {
   de: {
     'brand.sub': 'bouldern',
     'tab.boulders': 'Boulder', 'tab.ranking': 'Rangliste', 'tab.profile': 'Profil', 'tab.set': 'Schrauben',
-    'map.fitness': 'Fitness', 'map.entrance': 'Eingang',
+    'map.fitness': 'Fitness', 'map.entrance': 'Eingang', 'map.title': 'Hallenplan', 'map.zoom': 'Plan vergrößern',
     'color.green': 'Grün', 'color.blue': 'Blau', 'color.yellow': 'Gelb', 'color.red': 'Rot',
     'color.white': 'Weiß', 'color.black': 'Schwarz', 'color.pink': 'Pink',
     'tag.Crimps': 'Leisten', 'tag.Slopers': 'Sloper', 'tag.Pinches': 'Zangen', 'tag.Pockets': 'Löcher',

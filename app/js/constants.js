@@ -32,30 +32,10 @@ const STYLE_TAGS = [
   'Slab', 'Overhang', 'Compression', 'Heel hook', 'Toe hook', 'Mantle', 'Endurance',
 ];
 
-const AREA_COLORS = { main: '#c49a7a', labyrinth: '#5ec8f2', welle: '#f27aa8', board: '#9bd46a' };
+const AREA_COLORS = { main: '#c49a7a', labyrinth: '#5ec8f2', welle: '#f27aa8', board: '#9bd46a', none: '#8b93a7' };
 
-// Simplified gym map (SVG viewBox 0 0 700 770). rect = [x, y, width, height].
-const SECTORS = [
-  { id: 'highball', name: 'Highball', area: 'main', rect: [20, 10, 100, 120] },
-  { id: 'couloir', name: 'Couloir', area: 'main', rect: [20, 130, 100, 100] },
-  { id: 'wettkampfwand', name: 'Wettkampfwand', area: 'main', rect: [20, 230, 100, 120] },
-  { id: 'dawnwall', name: 'Dawn Wall', area: 'main', rect: [20, 350, 100, 100] },
-  { id: 'vorgarten', name: 'Vorgarten', area: 'main', rect: [20, 450, 100, 70] },
-  { id: 'basilisk', name: 'Basilisk', area: 'main', rect: [120, 10, 100, 140] },
-  { id: 'nordwand', name: 'Nordwand', area: 'main', rect: [120, 150, 100, 170] },
-  { id: 'hafen', name: 'Hafen', area: 'main', rect: [120, 320, 100, 200] },
-  { id: 'japanboard', name: 'Japan Board', area: 'board', rect: [220, 10, 100, 100] },
-  { id: 'suedwand', name: 'Südwand', area: 'main', rect: [220, 110, 100, 140] },
-  { id: 'psychoblock', name: 'Psychoblock', area: 'main', rect: [220, 250, 100, 120] },
-  { id: 'promenade', name: 'Promenade', area: 'main', rect: [220, 370, 100, 150] },
-  { id: 'labyrinth', name: 'Labyrinth', area: 'labyrinth', rect: [20, 600, 320, 160] },
-  { id: 'bucht', name: 'Bucht', area: 'welle', rect: [340, 600, 60, 160] },
-  { id: 'traverse', name: 'Traverse', area: 'welle', rect: [400, 600, 180, 80] },
-  { id: 'bug', name: 'Bug', area: 'welle', rect: [400, 680, 90, 80] },
-  { id: 'welle', name: 'Welle', area: 'welle', rect: [490, 680, 90, 80] },
-  { id: 'grotte', name: 'Grotte', area: 'welle', rect: [580, 600, 100, 80] },
-  { id: 'kilterboard', name: 'Kilterboard', area: 'board', rect: [580, 680, 100, 80] },
-];
+// Sector ids are stored in the database: never rename an existing id, only its display name.
+const SECTORS = GYM_MAP.shapes.filter((s) => s.kind === 'sector').map(({ id, name, area }) => ({ id, name, area }));
 
 // Badges are computed from the user's own history; `s` is the summary built in app.js.
 const BADGES = [

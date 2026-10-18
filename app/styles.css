@@ -417,6 +417,26 @@ textarea { width: 100%; min-height: 70px; margin-top: 12px; padding: 12px; borde
 .zoombox { margin: 0 14px; max-height: 70vh; overflow: auto; border-radius: var(--radius); border: 1px solid var(--line); }
 .zoombox.busy { opacity: .7; cursor: progress; }
 
+/* Gym map (polygons traced from the official plan) */
+.map-wrap { position: relative; }
+.map-scroll { overflow: auto; border-radius: 12px; }
+.map-wrap.zoomed .map-scroll { max-height: 65vh; }
+.map-wrap.zoomed .map { width: 230%; }
+.map-zoom { position: absolute; top: 6px; right: 6px; z-index: 1; font-size: 18px; font-weight: 800; }
+.map-outline { fill: var(--surface-2); stroke: var(--muted); stroke-width: 3; stroke-linejoin: round; }
+.map-floor { fill: var(--area); fill-opacity: .1; }
+.map-room polygon { fill: var(--area); fill-opacity: .18; stroke: var(--line); stroke-width: 2; }
+.map-room text { fill: var(--muted); text-anchor: middle; dominant-baseline: middle; font-weight: 600; pointer-events: none; }
+.zone polygon:not(.hit) { fill: var(--area); fill-opacity: .55; stroke: var(--area); stroke-width: 2; stroke-linejoin: round; transition: fill-opacity .15s; }
+.zone polygon.hit { fill: transparent; stroke: transparent; stroke-width: 22; stroke-linejoin: round; }
+.zone:hover polygon:not(.hit) { fill-opacity: .8; }
+.zone.selected polygon:not(.hit) { fill: var(--accent); fill-opacity: 1; stroke: var(--accent); }
+.zone text { font-weight: 800; fill: var(--text); text-anchor: middle; dominant-baseline: middle; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.zone.selected text { fill: var(--accent-ink); stroke: var(--accent); }
+.zone circle { fill: var(--cta); }
+.zone text.count { fill: var(--cta-ink); stroke: none; font-size: 16px; }
+.map .gym-name { font-size: 150px; letter-spacing: -4px; }
+
 /* Feedback */
 .feedback-link {
   display: flex; align-items: center; justify-content: center; gap: 6px; margin: 18px auto 0; padding: 8px 12px;
