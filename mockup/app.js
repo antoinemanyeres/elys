@@ -687,6 +687,7 @@
         <div class="kv"><span>${t('s.pointsPerSend')}</span><b>${pointsFor(ed.color, ed.subGrade)}</b></div>
         ${ed.error ? `<p class="notice">${t(ed.error)}</p>` : ''}
         <button class="btn primary block" data-action="save-boulder" ${photo ? '' : 'disabled'}>${t(editing ? 's.save' : 's.publish')}</button>
+        ${editing ? `<button class="btn ghost block danger" data-action="delete-boulder" data-id="${editing.id}">${t('s.deleteBoulder')}</button>` : ''}
       </section>
 
       ${feedbackCard()}
@@ -773,9 +774,10 @@
     'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; ui.quickId = null; ui.part = 1; },
     'select-part': (id) => { ui.part = Number(id); ui.quickId = null; },
     'toggle-color': (id) => { ui.colors.has(id) ? ui.colors.delete(id) : ui.colors.add(id); },
-    'open-boulder': (id) => { ui.boulderId = id; ui.quickId = null; },
+    'open-boulder': (id) => { if (ui.quickId) ui.navReplace = true; ui.boulderId = id; ui.quickId = null; },
     'quick-boulder': (id) => {
       if (isSetter()) { ui.boulderId = id; return; }
+      if (ui.quickId && ui.quickId !== id) ui.navReplace = true;
       ui.quickId = ui.quickId === id ? null : id;
       ui.votePromptId = null;
       const b = state.boulders.find((x) => x.id === id);
@@ -992,11 +994,39 @@
     reader.readAsDataURL(file);
   }
 
+  // Navigation (tab, boulder details, quick sheet) is mirrored in browser history so the phone back button works.
+  const navState = () => ({ tab: ui.tab, boulderId: ui.boulderId, quickId: ui.quickId });
+
+  function syncHistory(before) {
+    const after = navState();
+    const replace = ui.navReplace;
+    ui.navReplace = false;
+    if (JSON.stringify(after) === JSON.stringify(before)) return;
+    const closing = after.tab === before.tab && !after.boulderId && !after.quickId;
+    if (closing) history.back();
+    else if (replace) history.replaceState(after, '');
+    else history.pushState(after, '');
+  }
+
+  window.addEventListener('popstate', (e) => {
+    const s = e.state || { tab: 'boulders', boulderId: null, quickId: null };
+    ui.tab = s.tab === 'set' && state.currentUserId && !isSetter() ? 'boulders' : s.tab;
+    ui.boulderId = s.boulderId;
+    ui.quickId = s.quickId;
+    ui.votePromptId = null;
+    render();
+  });
+
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-action]');
     if (!el || el.disabled) return;
     const handler = actions[el.dataset.action];
-    if (handler && handler(el.dataset.id, e, el) !== false) render();
+    if (!handler) return;
+    const before = navState();
+    if (handler(el.dataset.id, e, el) !== false) {
+      syncHistory(before);
+      render();
+    }
   });
 
   document.addEventListener('change', (e) => {
@@ -1013,5 +1043,6 @@
     render();
   });
 
+  history.replaceState(navState(), '');
   render();
 })();
