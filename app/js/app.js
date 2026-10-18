@@ -345,7 +345,8 @@
     }).join('');
     return `<div class="map-wrap ${ui.mapZoom ? 'zoomed' : ''}">
       <button class="icon-chip map-zoom" data-action="map-zoom" aria-label="${t('map.zoom')}">${ui.mapZoom ? '\u2212' : '+'}</button>
-      <div class="map-scroll"><svg class="map" viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="${t('map.title')}">${layers}</svg></div>
+      <div class="map-scroll"><svg class="map" viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="${t('map.title')}">
+        <text class="gym-name" x="${vx + vw * 0.62}" y="${vy + vh * 0.42}">ELYS</text>${layers}</svg></div>
     </div>`;
   }
 

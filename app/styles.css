@@ -429,6 +429,7 @@ textarea { width: 100%; min-height: 70px; margin-top: 12px; padding: 12px; borde
 .zone.selected text { fill: var(--accent-ink); stroke: var(--accent); }
 .zone circle { fill: var(--cta); }
 .zone text.count { fill: var(--cta-ink); stroke: none; font-size: 16px; }
+.map .gym-name { font-size: 150px; letter-spacing: -4px; }
 
 /* Feedback */
 .feedback-link {
