@@ -1,0 +1,11 @@
+{
+  "name": "ELYS Boulderloft",
+  "short_name": "ELYS",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#11132c",
+  "theme_color": "#11132c",
+  "icons": [
+    { "src": "assets/elys-logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
