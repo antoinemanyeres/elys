@@ -162,9 +162,9 @@
 
   function wall(photo, boulders, { highlight = null, editor = false, draft = null, clickable = true, action } = {}) {
     const geo = wallGeom(photo);
-    const ordered = [...boulders].sort((a, b) => (a.id === highlight) - (b.id === highlight));
-    const layers = ordered.map((b) => boulderSvg(b.holds, b.color, geo, {
-      id: b.id, dim: !!highlight && highlight !== b.id, clickable: clickable && !editor, action,
+    const shown = highlight ? boulders.filter((b) => b.id === highlight) : boulders;
+    const layers = shown.map((b) => boulderSvg(b.holds, b.color, geo, {
+      id: b.id, clickable: clickable && !editor, action,
     })).join('');
     const draftLayer = draft ? boulderSvg(draft.holds, draft.color, geo, { draft: true }) : '';
     return `<div class="wall ${editor ? 'editing' : ''}" ${editor ? 'data-action="place-hold"' : ''}
@@ -409,7 +409,6 @@
     const photo = photoOf(b);
     const cons = consensus(b);
     const send = mySend(b);
-    const others = state.boulders.filter((x) => x.photoId === b.photoId && (isActive(x) || x.id === b.id));
     const comments = state.comments.filter((c) => c.boulderId === b.id).sort((a, c) => a.date - c.date);
     const repeats = sendsOf(b).sort((a, c) => c.date - a.date);
     const videos = (ui.videos[b.id] || []).slice().sort((a, c) => c.setter - a.setter);
@@ -423,7 +422,7 @@
     return `<div class="modal" data-action="close-modal"><div class="sheet">
       <div class="hero">
         <button class="back" data-action="close-modal" aria-label="${t('m.close')}">${icon('back')}</button>
-        ${wall(photo, others, { highlight: b.id })}
+        ${wall(photo, [b], { clickable: false })}
       </div>
       <div class="sheet-body">
         <div class="title-row">
