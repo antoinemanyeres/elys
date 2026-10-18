@@ -38,6 +38,7 @@ const I18N = {
     'm.videoNote': 'Mockup: videos disappear when the page is reloaded.', 'm.setterBeta': 'Setter beta',
     'm.beta': 'Beta & comments', 'm.placeholder': 'Share your beta…', 'm.post': 'Post',
     'q.details': 'Details', 'q.howHard': 'Nice send! How hard did it feel?', 'q.skip': 'Skip', 'q.done': 'Done',
+    'q.rateHint': 'Within {color}: 1 = soft, 5 = hard',
 
     'r.note': 'Only boulders currently on the walls count. When a wall is reset, its points leave the ranking.',
     'r.how': 'How points work',
@@ -111,6 +112,7 @@ const I18N = {
     'm.videoNote': 'Maquette : les vidéos disparaissent au rechargement de la page.', 'm.setterBeta': 'Méthode ouvreur',
     'm.beta': 'Méthodes & commentaires', 'm.placeholder': 'Partagez votre méthode…', 'm.post': 'Publier',
     'q.details': 'Détails', 'q.howHard': 'Bravo ! Quelle difficulté avez-vous ressentie ?', 'q.skip': 'Passer', 'q.done': 'Valider',
+    'q.rateHint': 'Dans le {color} : 1 = facile, 5 = difficile',
 
     'r.note': 'Seuls les blocs actuellement en place comptent. Quand un mur est changé, ses points sortent du classement.',
     'r.how': 'Calcul des points',
@@ -184,6 +186,7 @@ const I18N = {
     'm.videoNote': 'Mockup: Videos verschwinden beim Neuladen der Seite.', 'm.setterBeta': 'Schrauber-Beta',
     'm.beta': 'Beta & Kommentare', 'm.placeholder': 'Teile deine Beta…', 'm.post': 'Senden',
     'q.details': 'Details', 'q.howHard': 'Stark! Wie schwer hat er sich angefühlt?', 'q.skip': 'Überspringen', 'q.done': 'Fertig',
+    'q.rateHint': 'Innerhalb von {color}: 1 = leicht, 5 = schwer',
 
     'r.note': 'Nur aktuell hängende Boulder zählen. Wird eine Wand umgeschraubt, fallen ihre Punkte aus der Rangliste.',
     'r.how': 'So funktionieren die Punkte',

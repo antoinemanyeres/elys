@@ -1,5 +1,5 @@
 (function () {
-  const STORAGE_KEY = 'elys-mockup-v3';
+  const STORAGE_KEY = 'elys-mockup-v4';
   const DAY = 864e5;
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isoDate = (ms) => new Date(ms).toISOString().slice(0, 10);
@@ -62,17 +62,17 @@
   const myVote = (b) => state.votes.find((v) => v.boulderId === b.id && v.userId === state.currentUserId);
   const flashPct = Math.round(FLASH_BONUS * 100);
 
+  // Climbers only vote the sub-grade: the color always stays the setter's.
   function consensus(b) {
     const votes = state.votes.filter((v) => v.boulderId === b.id);
     if (!votes.length) return null;
-    const avg = votes.reduce((sum, v) => sum + colorIdx(v.color) * 5 + v.subGrade - 1, 0) / votes.length;
-    const i = Math.round(avg);
-    return { color: COLORS[Math.floor(i / 5)].id, subGrade: (i % 5) + 1, count: votes.length };
+    const avg = votes.reduce((sum, v) => sum + v.subGrade, 0) / votes.length;
+    return { color: b.color, subGrade: Math.round(avg), avg, count: votes.length };
   }
 
   const gradeFeedback = () => state.boulders.filter(isActive)
     .map((b) => ({ b, cons: consensus(b) }))
-    .filter(({ b, cons }) => cons && cons.count >= 3 && (cons.color !== b.color || cons.subGrade !== b.subGrade));
+    .filter(({ b, cons }) => cons && cons.count >= 3 && Math.abs(cons.avg - b.subGrade) >= 0.75);
 
   // ---------- Icons ----------
   const ICONS = {
@@ -346,7 +346,9 @@
 
   const voteBlock = (b) => {
     const vote = myVote(b);
-    return `<div class="vote" data-boulder="${b.id}">${colorDots('vote-color', vote && vote.color)}${subButtons('vote-sub', vote && vote.subGrade)}</div>`;
+    return `<div class="vote" data-boulder="${b.id}">
+      <div class="muted small">${t('q.rateHint', { color: colorLabel(b.color) })}</div>
+      ${subButtons('vote-sub', vote && vote.subGrade)}</div>`;
   };
 
   function votePrompt(b) {
@@ -649,7 +651,7 @@
     const b = state.boulders.find((x) => x.id === boulderId);
     let v = myVote(b);
     if (!v) {
-      v = { userId: state.currentUserId, boulderId, color: b.color, subGrade: b.subGrade };
+      v = { userId: state.currentUserId, boulderId, subGrade: b.subGrade };
       state.votes.push(v);
     }
     Object.assign(v, patch);
@@ -737,7 +739,6 @@
         : [...state.likes, { userId: uid, boulderId: id }];
       save();
     },
-    'vote-color': (id, e, el) => { upsertVote(el.closest('[data-boulder]').dataset.boulder, { color: id }); save(); },
     'vote-sub': (id, e, el) => { upsertVote(el.closest('[data-boulder]').dataset.boulder, { subGrade: Number(id) }); save(); },
     'post-comment': (id) => {
       const text = document.getElementById('comment-input').value.trim();
@@ -765,9 +766,7 @@
     },
     'apply-consensus': (id) => {
       const b = state.boulders.find((x) => x.id === id);
-      const cons = consensus(b);
-      b.color = cons.color;
-      b.subGrade = cons.subGrade;
+      b.subGrade = consensus(b).subGrade;
       save();
     },
     'edit-boulder': (id) => {

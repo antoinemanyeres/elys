@@ -155,8 +155,8 @@ function seedState() {
       if (rand() < 0.7) {
         // Climbers tend to find b9 harder than graded, to showcase setter feedback.
         const bias = bl.id === 'b9' ? 2 : 0;
-        const idx = Math.max(0, Math.min(34, ci * 5 + bl.subGrade - 1 + bias + Math.round(rand() * 2 - 1)));
-        votes.push({ userId: u.id, boulderId: bl.id, color: COLORS[Math.floor(idx / 5)].id, subGrade: (idx % 5) + 1 });
+        const subGrade = Math.max(1, Math.min(5, bl.subGrade + bias + Math.round(rand() * 2 - 1)));
+        votes.push({ userId: u.id, boulderId: bl.id, subGrade });
       }
       if (rand() < 0.3) likes.push({ userId: u.id, boulderId: bl.id });
     });
