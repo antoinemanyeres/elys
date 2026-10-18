@@ -1,0 +1,6 @@
+{
+  "redirects": [
+    { "source": "/map-editor", "destination": "/app/map-editor.html", "permanent": false },
+    { "source": "/map-editor.html", "destination": "/app/map-editor.html", "permanent": false }
+  ]
+}

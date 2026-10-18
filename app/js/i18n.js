@@ -146,7 +146,7 @@ const I18N = {
     'pv.deleteConfirm': 'Delete your account? All your sends, votes, comments and projects will be permanently erased.',
     'pv.deleteType': 'Type DELETE to confirm', 'pv.deleted': 'Your account has been deleted.',
     'ad.title': 'Members & roles', 'ad.text': 'Make a member a setter (can set boulders and moderate) or an administrator.',
-    'ad.search': 'Search by name or email', 'ad.none': 'No member found.', 'ad.saved': 'Role updated.',
+    'ad.search': 'Search by name or email', 'ad.mapEditor': 'Edit the gym map', 'ad.none': 'No member found.', 'ad.saved': 'Role updated.',
     'role.climber': 'Climber', 'role.setter': 'Setter', 'role.admin': 'Admin',
 
     'st.set': 'Set', 'st.plan': 'Planning', 'st.stats': 'Stats', 'st.inbox': 'Inbox',
@@ -304,7 +304,7 @@ const I18N = {
     'pv.deleteConfirm': 'Supprimer votre compte ? Toutes vos réussites, votes, commentaires et projets seront définitivement effacés.',
     'pv.deleteType': 'Tapez DELETE pour confirmer', 'pv.deleted': 'Votre compte a été supprimé.',
     'ad.title': 'Membres et rôles', 'ad.text': 'Nommez un membre ouvreur (ouvre des blocs et modère) ou administrateur.',
-    'ad.search': 'Rechercher par nom ou e-mail', 'ad.none': 'Aucun membre trouvé.', 'ad.saved': 'Rôle mis à jour.',
+    'ad.search': 'Rechercher par nom ou e-mail', 'ad.mapEditor': 'Modifier le plan de la salle', 'ad.none': 'Aucun membre trouvé.', 'ad.saved': 'Rôle mis à jour.',
     'role.climber': 'Grimpeur', 'role.setter': 'Ouvreur', 'role.admin': 'Admin',
 
     'st.set': 'Ouvrir', 'st.plan': 'Planning', 'st.stats': 'Stats', 'st.inbox': 'Boîte',
@@ -462,7 +462,7 @@ const I18N = {
     'pv.deleteConfirm': 'Konto löschen? Alle deine Begehungen, Stimmen, Kommentare und Projekte werden endgültig gelöscht.',
     'pv.deleteType': 'Tippe DELETE zur Bestätigung', 'pv.deleted': 'Dein Konto wurde gelöscht.',
     'ad.title': 'Mitglieder & Rollen', 'ad.text': 'Ernenne ein Mitglied zum Schrauber (schraubt und moderiert) oder Administrator.',
-    'ad.search': 'Nach Name oder E-Mail suchen', 'ad.none': 'Kein Mitglied gefunden.', 'ad.saved': 'Rolle aktualisiert.',
+    'ad.search': 'Nach Name oder E-Mail suchen', 'ad.mapEditor': 'Hallenplan bearbeiten', 'ad.none': 'Kein Mitglied gefunden.', 'ad.saved': 'Rolle aktualisiert.',
     'role.climber': 'Kletterer', 'role.setter': 'Schrauber', 'role.admin': 'Admin',
 
     'st.set': 'Schrauben', 'st.plan': 'Planung', 'st.stats': 'Statistik', 'st.inbox': 'Eingang',

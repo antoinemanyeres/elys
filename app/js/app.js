@@ -910,6 +910,7 @@
     return `<section class="card">
       <h3>${t('ad.title')}</h3>
       <p class="muted small">${t('ad.text')}</p>
+      <a class="btn ghost block" href="map-editor.html" target="_blank" rel="noopener">${t('ad.mapEditor')}</a>
       <input class="search" type="search" data-input="admin-q" value="${esc(ui.admin.q)}" placeholder="${t('ad.search')}">
       ${!ui.admin.users ? '<p class="muted small">\u2026</p>' : users.slice(0, 50).map((u) => `<div class="member">
         <span class="avatar sm">${esc(u.name[0])}</span>

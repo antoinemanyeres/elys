@@ -31,6 +31,12 @@
     .handle { fill: #fff; stroke: #e8395f; stroke-width: 3; cursor: move; }
     .handle.first { fill: #e8395f; }
     .label-handle { fill: #2ed3c6; stroke: #11132c; stroke-width: 3; cursor: move; }
+    @media (max-width: 800px) {
+      body { flex-direction: column; height: auto; }
+      aside { width: 100%; border-right: 0; border-bottom: 1px solid #2f3470; }
+      main { height: 75vh; }
+      .handle, .label-handle { r: 12; }
+    }
   </style>
 </head>
 <body>
