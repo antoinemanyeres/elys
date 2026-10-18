@@ -2,16 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#11132c">
-  <title>ELYS Boulderloft – app (mockup)</title>
+  <!-- The demo runs the real app: relative links (styles, privacy policy, map editor) point to /app/. -->
+  <base href="../app/">
+  <title>ELYS Boulderloft – demo</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .demo-bar {
+      display: flex; align-items: center; gap: 8px; max-width: 480px; margin: 0 auto; padding: 6px 12px;
+      background: #e8395f; color: #fff; font: 600 12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .demo-bar b { letter-spacing: .1em; }
+    .demo-bar select { flex: 1; min-width: 0; padding: 4px 6px; border: 0; border-radius: 6px; font: inherit; color: #1a1f4b; }
+    .demo-bar button { padding: 4px 8px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 6px; background: transparent; color: #fff; font: inherit; cursor: pointer; }
+  </style>
 </head>
 <body>
+  <div class="demo-bar">
+    <b>DEMO</b>
+    <select id="demo-user" aria-label="Demo user"></select>
+    <button id="demo-reset" type="button">Reset</button>
+  </div>
   <div id="app" class="app"></div>
-  <script src="i18n.js"></script>
-  <script src="data.js"></script>
-  <script src="detect.js"></script>
-  <script src="app.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/map-data.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="../mockup/demo-backend.js"></script>
+  <script src="js/detect.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (() => {
+      const select = document.getElementById('demo-user');
+      const roles = { climber: 'climber', setter: 'setter', admin: 'admin' };
+      const current = ElysDemo.currentUser();
+      select.innerHTML = '<option value="">\u2014 signed out \u2014</option>' + ElysDemo.profiles()
+        .map((p) => `<option value="${p.id}" ${p.id === current ? 'selected' : ''}>${p.name.replace(/[<>&"]/g, '')} (${roles[p.role]})</option>`).join('');
+      select.onchange = () => ElysDemo.switchUser(select.value);
+      document.getElementById('demo-reset').onclick = () => { if (confirm('Reset all demo data?')) ElysDemo.reset(); };
+    })();
+  </script>
 </body>
 </html>
