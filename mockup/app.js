@@ -18,6 +18,7 @@
   const ui = {
     tab: 'boulders', sectorId: 'welle', colors: new Set(), status: 'all', tag: '',
     boulderId: null, lastModalId: null, editor: newEditor(),
+    quickId: null, votePromptId: null,
     auth: { mode: 'signup', error: '' },
     videos: {}, // boulderId -> [{ userId, url, setter }] (in-memory only in the mockup)
   };
@@ -146,7 +147,7 @@
     return `<g class="badge">${shape}<text x="${x}" y="${y}">${t(h.type === 'top' ? 'hold.topSymbol' : 'hold.startSymbol')}</text></g>`;
   }
 
-  function boulderSvg(holds, color, geo, { id = '', dim = false, clickable = false, draft = false } = {}) {
+  function boulderSvg(holds, color, geo, { id = '', dim = false, clickable = false, draft = false, action = 'open-boulder' } = {}) {
     const c = colorOf(color);
     const halo = color === 'black' ? '#fff' : '#000';
     const shapes = holds.map((h, i) => {
@@ -154,16 +155,16 @@
       const ring = h.type === 'start' ? shapeSvg(h, geo.H, 'halo', 14) + shapeSvg(h, geo.H, 'line thin', 14) : '';
       return `<g class="hold" ${act}>${shapeSvg(h, geo.H, 'halo')}${shapeSvg(h, geo.H, 'line')}${ring}</g>`;
     }).join('');
-    const attrs = clickable ? `data-action="open-boulder" data-id="${id}"` : '';
+    const attrs = clickable ? `data-action="${action}" data-id="${id}"` : '';
     return `<g class="boulder ${dim ? 'dim' : ''} ${draft ? 'draft' : ''} ${clickable ? 'clickable' : ''}" ${attrs}
       style="--c:${c.hex};--halo:${halo};--ink:${c.ink}">${shapes}${holds.map((h) => badge(h, geo)).join('')}</g>`;
   }
 
-  function wall(photo, boulders, { highlight = null, editor = false, draft = null, clickable = true } = {}) {
+  function wall(photo, boulders, { highlight = null, editor = false, draft = null, clickable = true, action } = {}) {
     const geo = wallGeom(photo);
     const ordered = [...boulders].sort((a, b) => (a.id === highlight) - (b.id === highlight));
     const layers = ordered.map((b) => boulderSvg(b.holds, b.color, geo, {
-      id: b.id, dim: !!highlight && highlight !== b.id, clickable: clickable && !editor,
+      id: b.id, dim: !!highlight && highlight !== b.id, clickable: clickable && !editor, action,
     })).join('');
     const draftLayer = draft ? boulderSvg(draft.holds, draft.color, geo, { draft: true }) : '';
     return `<div class="wall ${editor ? 'editing' : ''}" ${editor ? 'data-action="place-hold"' : ''}
@@ -299,7 +300,7 @@
   }
 
   function boulderRow(b) {
-    return `<div class="row" data-action="open-boulder" data-id="${b.id}">
+    return `<div class="row ${ui.quickId === b.id ? 'selected' : ''}" data-action="quick-boulder" data-id="${b.id}">
       ${thumb(b)}
       <div class="mid">
         <div class="line1">${gradePill(b.color, b.subGrade)}${isNew(b) ? `<span class="new">${t('new')}</span>` : ''}</div>
@@ -336,11 +337,48 @@
             `<option value="${esc(tag)}" ${ui.tag === tag ? 'selected' : ''}>${esc(tagLabel(tag))}</option>`).join('')}</select>
         </div>
       </section>
-      ${photo ? `<section class="card flush">${wall(photo, visible.filter((b) => b.photoId === photo.id))}
+      ${photo ? `<section class="card flush">${wall(photo, visible.filter((b) => b.photoId === photo.id), { highlight: ui.quickId, action: 'quick-boulder' })}
           <div class="legend"><span><i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}</span><span><i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}</span><span class="muted">${t('b.tapBoulder')}</span></div></section>`
         : sector ? `<section class="card empty">${t('b.noPhoto')}</section>` : ''}
       <div class="list-head">${visible.length === 1 ? t('b.count1') : t('b.countN', { n: visible.length })}</div>
       <div class="list">${visible.map(boulderRow).join('') || `<p class="empty">${t('b.noMatch')}</p>`}</div>`;
+  }
+
+  const voteBlock = (b) => {
+    const vote = myVote(b);
+    return `<div class="vote" data-boulder="${b.id}">${colorDots('vote-color', vote && vote.color)}${subButtons('vote-sub', vote && vote.subGrade)}</div>`;
+  };
+
+  function votePrompt(b) {
+    return `<div class="vote-prompt">
+      <b>${t('q.howHard')}</b>
+      <div class="muted small">${t('m.setterGrade')}: ${gradePill(b.color, b.subGrade)}</div>
+      ${voteBlock(b)}
+      <div class="prompt-actions"><button class="btn ghost" data-action="vote-done">${t('q.skip')}</button>
+        <button class="btn primary" data-action="vote-done" ${myVote(b) ? '' : 'disabled'}>${t('q.done')}</button></div>
+    </div>`;
+  }
+
+  // Quick actions from the boulders view, without leaving the page.
+  function quickSheet() {
+    const b = state.boulders.find((x) => x.id === ui.quickId);
+    if (!b) return '';
+    const send = mySend(b);
+    const body = ui.votePromptId === b.id ? votePrompt(b) : `<div class="quick-actions">
+        <button class="btn ${send ? 'sent' : 'primary'}" data-action="toggle-send" data-id="${b.id}">${send ? `${icon('check')} ${t('m.sent')}` : t('m.markSent')}</button>
+        <button class="btn flash-btn ${send && send.flash ? 'on' : ''}" data-action="toggle-flash" data-id="${b.id}">${icon('flash')} ${t(send && send.flash ? 'm.flashed' : 'm.flash')}</button>
+        <button class="btn ghost" data-action="open-boulder" data-id="${b.id}">${t('q.details')} →</button>
+      </div>`;
+    return `<div class="quick-backdrop" data-action="close-quick"></div>
+      <div class="quick ${ui.lastQuickId === b.id ? '' : 'enter'}" role="dialog">
+        <div class="quick-head">${thumb(b, 52)}
+          <div class="mid">${gradePill(b.color, b.subGrade)}
+            <div class="muted small">${esc(sectorOf(b.sectorId).name)} · ${t('b.sends', { n: sendsOf(b).length })}</div></div>
+          <div class="pts">${points(b)}<small>${t('pts')}</small>
+            <div class="flash-mark small">${icon('flash')} ${sendPointsFor(b.color, b.subGrade, true)}</div></div>
+        </div>
+        ${body}
+      </div>`;
   }
 
   function boulderModal() {
@@ -349,7 +387,6 @@
     const photo = photoOf(b);
     const cons = consensus(b);
     const send = mySend(b);
-    const vote = myVote(b);
     const others = state.boulders.filter((x) => x.photoId === b.photoId && (isActive(x) || x.id === b.id));
     const comments = state.comments.filter((c) => c.boulderId === b.id).sort((a, c) => a.date - c.date);
     const repeats = sendsOf(b).sort((a, c) => c.date - a.date);
@@ -381,6 +418,7 @@
           <button class="btn icon-btn ${hasLiked(b) ? 'liked' : ''}" data-action="toggle-like" data-id="${b.id}" aria-label="${t('m.like')}">${icon('heart')}</button>
         </div>
         ${isSetter() ? '' : `<p class="hint">${t('m.flashHint', { pct: flashPct })}</p>`}
+        ${ui.votePromptId === b.id ? `<section class="card">${votePrompt(b)}</section>` : ''}
 
         <section class="card">
           <h3>${t('m.grade')}</h3>
@@ -389,7 +427,7 @@
             ? `<span>${gradePill(cons.color, cons.subGrade)} <small class="muted">${t('m.votes', { n: cons.count })}</small></span>`
             : `<span class="muted">${t('m.noVotes')}</span>`}</div>
           ${isSetter() ? '' : send
-            ? `<div class="vote"><span>${t('m.yourVote')}</span>${colorDots('vote-color', vote && vote.color)}${subButtons('vote-sub', vote && vote.subGrade)}</div>`
+            ? `<div class="vote-label">${t('m.yourVote')}</div>${voteBlock(b)}`
             : `<p class="muted small">${t('m.voteHint')}</p>`}
         </section>
 
@@ -595,13 +633,15 @@
     const sheetScroll = oldSheet && ui.lastModalId === ui.boulderId ? oldSheet.scrollTop : 0;
     const oldZoom = document.querySelector('.zoombox');
     const zoomScroll = oldZoom ? [oldZoom.scrollLeft, oldZoom.scrollTop] : null;
-    root.innerHTML = header() + `<main>${views[ui.tab]()}</main>` + tabs() + (ui.boulderId ? boulderModal() : '');
+    root.innerHTML = header() + `<main>${views[ui.tab]()}</main>` + tabs()
+      + (ui.boulderId ? boulderModal() : ui.quickId ? quickSheet() : '');
     const sheet = document.querySelector('.sheet');
     if (sheet) sheet.scrollTop = sheetScroll;
     const zoom = document.querySelector('.zoombox');
     if (zoom && zoomScroll) [zoom.scrollLeft, zoom.scrollTop] = zoomScroll;
     document.body.classList.toggle('modal-open', !!ui.boulderId);
     ui.lastModalId = ui.boulderId;
+    ui.lastQuickId = ui.quickId;
   }
 
   // ---------- Actions ----------
@@ -649,28 +689,45 @@
   }
 
   const actions = {
-    'tab': (id) => { ui.tab = id; ui.boulderId = null; window.scrollTo(0, 0); },
-    'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; },
+    'tab': (id) => { ui.tab = id; ui.boulderId = null; ui.quickId = null; ui.votePromptId = null; window.scrollTo(0, 0); },
+    'select-sector': (id) => { ui.sectorId = ui.sectorId === id ? null : id; ui.quickId = null; },
     'toggle-color': (id) => { ui.colors.has(id) ? ui.colors.delete(id) : ui.colors.add(id); },
-    'open-boulder': (id) => { ui.boulderId = id; },
+    'open-boulder': (id) => { ui.boulderId = id; ui.quickId = null; },
+    'quick-boulder': (id) => {
+      if (isSetter()) { ui.boulderId = id; return; }
+      ui.quickId = ui.quickId === id ? null : id;
+      ui.votePromptId = null;
+    },
+    'close-quick': () => { ui.quickId = null; ui.votePromptId = null; },
+    'vote-done': () => {
+      if (ui.quickId === ui.votePromptId) ui.quickId = null;
+      ui.votePromptId = null;
+    },
     'close-modal': (id, e, el) => {
       if (el.classList.contains('modal') && e.target !== el) return false;
       ui.boulderId = null;
+      ui.votePromptId = null;
     },
     'toggle-send': (id) => {
       const uid = state.currentUserId;
       if (state.sends.some((s) => s.boulderId === id && s.userId === uid)) {
         state.sends = state.sends.filter((s) => !(s.boulderId === id && s.userId === uid));
         state.votes = state.votes.filter((v) => !(v.boulderId === id && v.userId === uid));
+        if (ui.votePromptId === id) ui.votePromptId = null;
       } else {
         state.sends.push({ userId: uid, boulderId: id, date: Date.now(), flash: false });
+        ui.votePromptId = id;
       }
       save();
     },
     'toggle-flash': (id) => {
       const send = state.sends.find((s) => s.boulderId === id && s.userId === state.currentUserId);
-      if (send) send.flash = !send.flash;
-      else state.sends.push({ userId: state.currentUserId, boulderId: id, date: Date.now(), flash: true });
+      if (send) {
+        send.flash = !send.flash;
+      } else {
+        state.sends.push({ userId: state.currentUserId, boulderId: id, date: Date.now(), flash: true });
+        ui.votePromptId = id;
+      }
       save();
     },
     'toggle-like': (id) => {
@@ -680,8 +737,8 @@
         : [...state.likes, { userId: uid, boulderId: id }];
       save();
     },
-    'vote-color': (id) => { upsertVote(ui.boulderId, { color: id }); save(); },
-    'vote-sub': (id) => { upsertVote(ui.boulderId, { subGrade: Number(id) }); save(); },
+    'vote-color': (id, e, el) => { upsertVote(el.closest('[data-boulder]').dataset.boulder, { color: id }); save(); },
+    'vote-sub': (id, e, el) => { upsertVote(el.closest('[data-boulder]').dataset.boulder, { subGrade: Number(id) }); save(); },
     'post-comment': (id) => {
       const text = document.getElementById('comment-input').value.trim();
       if (!text) return false;
