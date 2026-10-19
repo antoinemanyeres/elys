@@ -13,7 +13,7 @@
     seasons: [], plans: [], staff: [],
   };
 
-  const newEditor = (sectorId = SECTORS[0].id) => ({
+  const newEditor = (sectorId = SET_SECTORS[0].id) => ({
     sectorId, part: currentPart(sectorId), editingId: null, color: 'green', subGrade: 1, tags: [], holds: [],
     holdType: 'start', mode: 'auto', tolerance: 30, circleR: 0.035, zoom: 1,
     openedAt: today(), closesAt: isoDate(Date.now() + 60 * DAY), busy: false, notice: '', error: '',
@@ -300,6 +300,7 @@
 
   // ---------- Map ----------
   const polyPoints = (poly) => poly.map(([x, y]) => `${x},${y}`).join(' ');
+  const SECTOR_FONT = 20;
   const centroid = (poly) => [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length];
 
   // Stairs are quads [a, b, c, d]: one step line from edge a→d to edge b→c every ~7 px.
@@ -314,32 +315,43 @@
     return out;
   }
 
-  function mapLabel(shape, text) {
+  function mapLabel(shape, text, fixedSize) {
     const [x, y, rot = 0, size = 22] = shape.label || [...centroid(shape.poly), 0, 22];
-    return `<text x="${x}" y="${y}" style="font-size:${size}px" transform="rotate(${rot} ${x} ${y})">${text}</text>`;
+    return `<text x="${x}" y="${y}" style="font-size:${fixedSize || size}px" transform="rotate(${rot} ${x} ${y})">${text}</text>`;
   }
 
   function gymMap(selectedId) {
     const counts = {};
     activeBoulders().forEach((b) => { counts[b.sectorId] = (counts[b.sectorId] || 0) + 1; });
     const [vx, vy, vw, vh] = GYM_MAP.viewBox;
-    const layers = GYM_MAP.shapes.map((s) => {
+    const layers = GYM_MAP.shapes.map((s, i) => {
       if (s.kind === 'outline') return `<polygon class="map-outline" points="${polyPoints(s.poly)}"/>`;
       if (s.kind === 'floor') return `<polygon class="map-floor" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}" points="${polyPoints(s.poly)}"/>`;
       if (s.kind === 'mat') return `<polygon class="map-mat" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}" points="${polyPoints(s.poly)}"/>`;
+      if (s.kind === 'upper') return `<polygon class="map-upper" points="${polyPoints(s.poly)}"/>`;
+      // Ramp quad [a, b, c, d]: shading goes from the low edge a→b to the high edge c→d.
+      if (s.kind === 'ramp' && s.poly.length === 4) {
+        const [a, b, c, d] = s.poly;
+        return `<linearGradient id="ramp-${i}" gradientUnits="userSpaceOnUse" x1="${(a[0] + b[0]) / 2}" y1="${(a[1] + b[1]) / 2}" x2="${(c[0] + d[0]) / 2}" y2="${(c[1] + d[1]) / 2}">
+          <stop offset="0" class="ramp-low"/><stop offset="1" class="ramp-high"/></linearGradient>
+          <polygon class="map-ramp" fill="url(#ramp-${i})" points="${polyPoints(s.poly)}"/>`;
+      }
       if (s.kind === 'stairs') return `<g class="map-stairs"><polygon points="${polyPoints(s.poly)}"/>${s.poly.length === 4 ? stairSteps(s.poly) : ''}</g>`;
       if (s.kind === 'room') {
         return `<g class="map-room" style="--area:${AREA_COLORS[s.area] || AREA_COLORS.none}"><polygon points="${polyPoints(s.poly)}"/>${mapLabel(s, esc(t(s.name)))}</g>`;
       }
+      if (s.kind !== 'sector') return '';
+      if (s.noSet) return `<g class="map-static">${mapLabel(s, esc(s.name), SECTOR_FONT)}</g>`;
       const n = counts[s.id] || 0;
-      // Badge sits right after the (rotated) name, kept upright; width is estimated from the label size.
-      const [lx, ly, rot = 0, size = 22] = s.label || [...centroid(s.poly), 0, 22];
+      // Badge sits right after the (rotated) name, kept upright; width is estimated from the font size.
+      const [lx, ly, rot = 0] = s.label || [...centroid(s.poly), 0];
+      const size = SECTOR_FONT;
       const r = Math.max(10, size * 0.6);
       const off = s.name.length * size * 0.33 + r + 3;
       const cx = lx + off * Math.cos(rot * Math.PI / 180), cy = ly + off * Math.sin(rot * Math.PI / 180);
       return `<g class="zone ${s.id === selectedId ? 'selected' : ''}" data-action="select-sector" data-id="${s.id}" style="--area:${AREA_COLORS[s.area]}">
         <polygon class="hit" points="${polyPoints(s.poly)}"/><polygon points="${polyPoints(s.poly)}"/>
-        ${mapLabel(s, esc(s.name))}
+        ${mapLabel(s, esc(s.name), SECTOR_FONT)}
         ${n ? `<circle cx="${cx}" cy="${cy}" r="${r}"></circle><text class="count" x="${cx}" y="${cy}" style="font-size:${r * 1.05}px">${n}</text>` : ''}
       </g>`;
     }).join('');
@@ -505,7 +517,7 @@
       </div>
       <div class="side">
         <div class="pts">${points(b)}<small>${t('pts')}</small></div>
-        <div class="meta">${sendMark(b)}${store.likes.has(b.id) ? `<span class="heart">${icon('heart')}</span>` : ''}<span>${t('b.sends', { n: st.sends })}</span></div>
+        <div class="meta">${sendMark(b)}${st.likes || store.likes.has(b.id) ? `<span class="likes ${store.likes.has(b.id) ? 'on' : ''}">${icon('heart')}${st.likes}</span>` : ''}<span>${t('b.sends', { n: st.sends })}</span></div>
       </div>
     </div>`;
   }
@@ -613,9 +625,11 @@
     const platform = /instagram/i.test(v.url) ? 'Instagram' : 'YouTube';
     return `<div class="video-link ${v.hidden ? 'is-hidden' : ''}">
       <a href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">${icon('play')}<span>${platform}</span></a>
-      <span class="muted small">${v.author && v.author.role !== 'climber' ? `<span class="badge-setter">${t('m.setterBeta')}</span>` : ''}${esc(v.author ? v.author.name : '?')}</span>
+      <span class="muted small">${esc(v.author ? v.author.name : '?')}</span>
       ${contentActions('video', v, own)}</div>`;
   }
+
+  const isSetterVideo = (v) => v.author && v.author.role !== 'climber';
 
   function contentActions(type, item, own) {
     const out = [];
@@ -683,8 +697,10 @@
         </section>
 
         <section class="card">
-          <h3>${t('m.videos')}</h3>
-          ${d.videos.map(videoCard).join('') || `<p class="muted small">${d.loading ? '\u2026' : t('m.noVideos')}</p>`}
+          <h3>${t('m.setterBeta')}</h3>
+          ${d.videos.filter(isSetterVideo).map(videoCard).join('') || `<p class="muted small">${d.loading ? '\u2026' : t('m.noVideos')}</p>`}
+          <h3 class="sub-h">${t('m.community')}</h3>
+          ${d.videos.filter((v) => !isSetterVideo(v)).map(videoCard).join('') || `<p class="muted small">${d.loading ? '\u2026' : t('m.noVideos')}</p>`}
           <form class="inline-form" data-submit="video" data-id="${b.id}">
             <input id="video-input" type="url" inputmode="url" placeholder="${t('v.placeholder')}">
             <button class="btn ghost" type="submit">${t('v.add')}</button>
@@ -760,7 +776,8 @@
   function mySummary() {
     const sends = [...store.sends.entries()].filter(([, s]) => s.boulder);
     const colors = Object.fromEntries(COLORS.map((c) => [c.id, 0]));
-    sends.forEach(([, s]) => { colors[s.boulder.color]++; });
+    const flashColors = { ...colors };
+    sends.forEach(([, s]) => { colors[s.boulder.color]++; if (s.flash) flashColors[s.boulder.color]++; });
     const byPhoto = {};
     activeBoulders().forEach((b) => { (byPhoto[b.photoId] = byPhoto[b.photoId] || []).push(b); });
     const wallCleared = Object.values(byPhoto).some((list) => list.length >= 3 && list.every((b) => store.sends.has(b.id)));
@@ -769,7 +786,7 @@
     const inSeason = season ? sends.filter(([, s]) => isoDate(s.createdAt) >= season.starts_on && isoDate(s.createdAt) <= season.ends_on) : [];
     const sum = (list) => list.reduce((a, [, s]) => a + sendPointsFor(s.boulder.color, s.boulder.subGrade, s.flash), 0);
     return {
-      total: sends.length, flashes: sends.filter(([, s]) => s.flash).length, colors, wallCleared,
+      total: sends.length, flashes: sends.filter(([, s]) => s.flash).length, colors, flashColors, wallCleared,
       comments: store.commentCount, votes: store.votes.size, sends,
       currentPoints: sum(active), currentCount: active.length, season, seasonPoints: sum(inSeason),
       perColorActive: COLORS.map((c) => active.filter(([, s]) => s.boulder.color === c.id).length),
@@ -812,16 +829,20 @@
     </section>`;
   }
 
+  const badgeText = (b, part) => b.key
+    ? t(`bd.${b.key}.${part}`, { color: colorLabel(b.colorId), colorLc: colorLabel(b.colorId).toLowerCase() })
+    : t(`bd.${b.id}.${part}`);
+
   function badgesCard(sum) {
     const earned = BADGES.filter((b) => b.test(sum)).length;
+    const medal = (b) => `<span class="medal" ${b.color ? `style="--medal:${b.color};color:${b.ink || '#fff'}"` : ''}>${b.mark}</span>`;
+    const open = BADGES.find((b) => b.id === ui.badgeId);
     return `<section class="card">
       <h3>${t('bd.title')} <span class="muted small">${earned}/${BADGES.length}</span></h3>
-      <div class="badges">${BADGES.map((b) => {
-        const on = b.test(sum);
-        return `<div class="badge-item ${on ? 'on' : ''}" title="${esc(t('bd.' + b.id + '.d'))}">
-          <span class="medal" ${b.color ? `style="--medal:${b.color}"` : ''}>${b.mark}</span>
-          <b>${t('bd.' + b.id + '.t')}</b></div>`;
-      }).join('')}</div>
+      ${open ? `<div class="badge-detail ${open.test(sum) ? 'on' : ''}">${medal(open)}<div><b>${badgeText(open, 't')}</b>
+        <div class="muted small">${badgeText(open, 'd')}</div><div class="small">${t(open.test(sum) ? 'bd.earned' : 'bd.locked')}</div></div></div>` : ''}
+      <div class="badges">${BADGES.map((b) => `<button class="badge-item ${b.test(sum) ? 'on' : ''} ${b.id === ui.badgeId ? 'sel' : ''}"
+          data-action="badge-info" data-id="${b.id}">${medal(b)}<b>${badgeText(b, 't')}</b></button>`).join('')}</div>
     </section>`;
   }
 
@@ -961,7 +982,7 @@
   }
 
   function setterView() {
-    if (!ui.editor) ui.editor = newEditor(ui.sectorId || SECTORS[0].id);
+    if (!ui.editor) ui.editor = newEditor(ui.sectorId && !sectorOf(ui.sectorId).noSet ? ui.sectorId : SET_SECTORS[0].id);
     const ed = ui.editor;
     const photo = editorPhoto();
     const parts = sectorParts(ed.sectorId);
@@ -987,7 +1008,7 @@
     return `
       <section class="card">
         ${editing ? `<div class="editing-banner">${t('s.editing')} ${gradePill(editing.color, editing.subGrade)}<button class="link" data-action="cancel-edit">${t('s.cancel')}</button></div>` : `<h3>${t('s.new')}</h3>`}
-        <label class="field"><span>${t('s.wall')}</span><select data-change="ed-sector" ${editing ? 'disabled' : ''}>${SECTORS.map((s) =>
+        <label class="field"><span>${t('s.wall')}</span><select data-change="ed-sector" ${editing ? 'disabled' : ''}>${SET_SECTORS.map((s) =>
           `<option value="${s.id}" ${s.id === ed.sectorId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
         <div class="field"><span>${t('s.parts')}</span>${partTabs}</div>
         ${uploadSection}
@@ -999,13 +1020,14 @@
           ${seg('ed-holdtype', 'start', ed.holdType, `<i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}`)}${seg('ed-holdtype', 'hold', ed.holdType, t('hold.hold'))}${seg('ed-holdtype', 'top', ed.holdType, `<i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}`)}</div></div>
         <div class="tool-row"><span class="label">${t('s.outline')}</span><div class="seg">
           ${seg('ed-mode', 'auto', ed.mode, t('s.auto'))}${seg('ed-mode', 'circle', ed.mode, t('s.circle'))}</div></div>
-        ${ed.mode === 'auto'
-          ? `<label class="tool-row"><span class="label">${t('s.sensitivity')}</span><input type="range" min="10" max="60" step="2" value="${ed.tolerance}" data-change="ed-tol"></label>`
-          : ''}
-        <label class="tool-row"><span class="label">${t('s.circleSize')}</span><input type="range" min="0.015" max="0.1" step="0.005" value="${ed.circleR}" data-change="ed-circle"></label>
+        ${ed.mode === 'circle'
+          ? `<label class="tool-row"><span class="label">${t('s.circleSize')}</span><input type="range" min="0.015" max="0.1" step="0.005" value="${ed.circleR}" data-change="ed-circle"></label>`
+          : ui.edAdvanced
+            ? `<label class="tool-row"><span class="label">${t('s.sensitivity')}</span><input type="range" min="10" max="60" step="2" value="${ed.tolerance}" data-change="ed-tol"></label>`
+            : ''}
+        ${ed.mode === 'auto' ? `<button class="link small adv-toggle" data-action="ed-advanced">${t(ui.edAdvanced ? 's.hideAdvanced' : 's.advanced')}</button>` : ''}
       </section>
-      <div class="zoom-bar">${[1, 2, 3].map((z) => `<button class="${ed.zoom === z ? 'on' : ''}" data-action="ed-zoom" data-id="${z}">${z}\u00d7</button>`).join('')}
-        <span class="grow"></span>
+      <div class="zoom-bar"><span class="muted small grow">${t('s.pinchHint')}</span>
         <button data-action="ed-undo" ${ed.holds.length ? '' : 'disabled'}>${t('s.undo')}</button>
         <button data-action="ed-clear" ${ed.holds.length ? '' : 'disabled'}>${t('s.clear')}</button></div>
       <div class="zoombox ${ed.busy ? 'busy' : ''}"><div style="width:${ed.zoom * 100}%">
@@ -1044,7 +1066,7 @@
   }
 
   function planningView() {
-    if (!ui.planForm) ui.planForm = { id: null, sectorId: SECTORS[0].id, part: '', date: isoDate(Date.now() + 7 * DAY), setterId: store.uid, notes: '' };
+    if (!ui.planForm) ui.planForm = { id: null, sectorId: SET_SECTORS[0].id, part: '', date: isoDate(Date.now() + 7 * DAY), setterId: store.uid, notes: '' };
     const f = ui.planForm;
     const upcoming = store.plans.filter((p) => !p.done).sort((a, b) => a.planned_on.localeCompare(b.planned_on));
     const done = store.plans.filter((p) => p.done).sort((a, b) => b.planned_on.localeCompare(a.planned_on)).slice(0, 10);
@@ -1065,7 +1087,7 @@
         <h3>${t(f.id ? 'pl.editTitle' : 'pl.addTitle')}</h3>
         <form data-submit="plan">
           <div class="two">
-            <label class="field"><span>${t('s.wall')}</span><select id="plan-sector">${SECTORS.map((s) =>
+            <label class="field"><span>${t('s.wall')}</span><select id="plan-sector">${SET_SECTORS.map((s) =>
               `<option value="${s.id}" ${s.id === f.sectorId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
             <label class="field"><span>${t('pl.partLabel')}</span><input id="plan-part" type="number" min="1" max="20" value="${esc(f.part)}" placeholder="${t('pl.allParts')}"></label>
           </div>
@@ -1110,7 +1132,7 @@
       </section>
       <section class="card">
         <h3>${t('sx.distribution')}</h3>
-        <select class="select-full" data-change="stats-sector"><option value="">${t('b.wholeGym')}</option>${SECTORS.map((s) =>
+        <select class="select-full" data-change="stats-sector"><option value="">${t('b.wholeGym')}</option>${SET_SECTORS.map((s) =>
           `<option value="${s.id}" ${s.id === sectorFilter ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
         <table class="points-table heat"><tr><th></th>${[1, 2, 3, 4, 5].map((n) => `<th>${n}</th>`).join('')}<th>\u03a3</th></tr>
           ${COLORS.map((c, ci) => `<tr><td><i class="sw" style="background:${c.hex}"></i>${colorLabel(c.id)}</td>
@@ -1222,7 +1244,7 @@
   function placeHold(e, el) {
     const ed = ui.editor;
     const photo = editorPhoto();
-    if (!photo || ed.busy) return false;
+    if (!photo || ed.busy || Date.now() - pinchEndedAt < 400) return false;
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
@@ -1398,6 +1420,7 @@
       ui.feedback = { ...ui.feedback, sent: true, error: '' };
     },
     'profile-color': (id) => { ui.profileColor = ui.profileColor === id ? null : id; },
+    'badge-info': (id) => { ui.badgeId = ui.badgeId === id ? null : id; },
     'onboard-next': () => { ui.onboardStep++; },
     'onboard-done': async () => {
       await Api.updateProfile(store.uid, { onboarded: true });
@@ -1474,7 +1497,7 @@
     },
     'ed-holdtype': (id) => { ui.editor.holdType = id; },
     'ed-mode': (id) => { ui.editor.mode = id; ui.editor.notice = ''; },
-    'ed-zoom': (id) => { ui.editor.zoom = Number(id); },
+    'ed-advanced': () => { ui.edAdvanced = !ui.edAdvanced; },
     'ed-undo': () => { ui.editor.holds.pop(); ui.editor.notice = ''; },
     'ed-clear': () => { ui.editor.holds = []; ui.editor.notice = ''; },
     'remove-hold': (id) => { ui.editor.holds.splice(Number(id), 1); },
@@ -1714,6 +1737,49 @@
 
   document.addEventListener('pointerup', () => { cropDrag = null; });
   document.addEventListener('pointercancel', () => { cropDrag = null; });
+
+  // ---------- Pinch / ctrl+wheel zoom on the setter's wall photo ----------
+  const MAX_ZOOM = 5;
+  let pinch = null;
+  let pinchEndedAt = 0;
+
+  // Zoom around a point (cx, cy) of the box, keeping the photo point under it in place.
+  function zoomEditorAt(box, z, cx, cy) {
+    const inner = box.firstElementChild;
+    const fx = (box.scrollLeft + cx) / box.scrollWidth, fy = (box.scrollTop + cy) / box.scrollHeight;
+    ui.editor.zoom = clamp(z, 1, MAX_ZOOM);
+    inner.style.width = `${ui.editor.zoom * 100}%`;
+    box.scrollLeft = fx * box.scrollWidth - cx;
+    box.scrollTop = fy * box.scrollHeight - cy;
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    const box = e.target.closest && e.target.closest('.zoombox');
+    if (!box || !ui.editor || e.touches.length !== 2) return;
+    const [a, b] = e.touches;
+    pinch = { box, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom: ui.editor.zoom };
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!pinch || e.touches.length !== 2) return;
+    e.preventDefault();
+    const [a, b] = e.touches;
+    const r = pinch.box.getBoundingClientRect();
+    const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    zoomEditorAt(pinch.box, pinch.zoom * d / pinch.d, (a.clientX + b.clientX) / 2 - r.left, (a.clientY + b.clientY) / 2 - r.top);
+  }, { passive: false });
+
+  document.addEventListener('touchend', (e) => {
+    if (pinch && e.touches.length < 2) { pinch = null; pinchEndedAt = Date.now(); }
+  });
+
+  document.addEventListener('wheel', (e) => {
+    const box = e.ctrlKey && e.target.closest && e.target.closest('.zoombox');
+    if (!box || !ui.editor) return;
+    e.preventDefault();
+    const r = box.getBoundingClientRect();
+    zoomEditorAt(box, ui.editor.zoom * Math.exp(-e.deltaY * 0.005), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
 
   // ---------- History (phone back button) ----------
   const navState = () => ({ tab: ui.tab, boulderId: ui.boulderId, quickId: ui.quickId, feedback: !!ui.feedback, news: ui.news });

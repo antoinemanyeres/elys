@@ -35,9 +35,12 @@ const STYLE_TAGS = [
 const AREA_COLORS = { main: '#c49a7a', labyrinth: '#5ec8f2', welle: '#f27aa8', board: '#9bd46a', none: '#8b93a7' };
 
 // Sector ids are stored in the database: never rename an existing id, only its display name.
-const SECTORS = GYM_MAP.shapes.filter((s) => s.kind === 'sector').map(({ id, name, area }) => ({ id, name, area }));
+const SECTORS = GYM_MAP.shapes.filter((s) => s.kind === 'sector').map(({ id, name, area, noSet }) => ({ id, name, area, noSet: !!noSet }));
+// Boards and the labyrinth are on the map but have no boulders set by the team.
+const SET_SECTORS = SECTORS.filter((s) => !s.noSet);
 
 // Badges are computed from the user's own history; `s` is the summary built in app.js.
+// `key` + `color` badges share one translated text with the color name as parameter.
 const BADGES = [
   { id: 'first', mark: '1', test: (s) => s.total >= 1 },
   { id: 'ten', mark: '10', test: (s) => s.total >= 10 },
@@ -45,12 +48,12 @@ const BADGES = [
   { id: 'hundred', mark: '100', test: (s) => s.total >= 100 },
   { id: 'flash', mark: '\u26a1', test: (s) => s.flashes >= 1 },
   { id: 'flash10', mark: '\u26a110', test: (s) => s.flashes >= 10 },
-  { id: 'black', mark: '\u25cf', color: '#1b1b1b', test: (s) => s.colors.black > 0 },
-  { id: 'pink', mark: '\u25cf', color: '#ff4fb4', test: (s) => s.colors.pink > 0 },
   { id: 'rainbow', mark: '\u25d0', test: (s) => COLORS.every((c) => s.colors[c.id] > 0) },
   { id: 'wall', mark: '\u25a6', test: (s) => s.wallCleared },
   { id: 'beta', mark: '\u270e', test: (s) => s.comments >= 5 },
   { id: 'critic', mark: '\u2605', test: (s) => s.votes >= 20 },
+  ...COLORS.map((c) => ({ id: 'send-' + c.id, key: 'color', colorId: c.id, mark: '\u2713', color: c.hex, ink: c.ink, test: (s) => s.colors[c.id] > 0 })),
+  ...COLORS.map((c) => ({ id: 'flash-' + c.id, key: 'fcolor', colorId: c.id, mark: '\u26a1', color: c.hex, ink: c.ink, test: (s) => s.flashColors[c.id] > 0 })),
 ];
 
 const VIDEO_URL_RE = /^https:\/\/([a-z0-9-]+\.)?(youtube\.com|youtu\.be|instagram\.com)\//i;

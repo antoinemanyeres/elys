@@ -52,7 +52,7 @@
     <h2>Shapes</h2>
     <div id="list"></div>
     <div class="row">
-      <button id="add-sector">+ Wall sector</button><button id="add-room">+ Room</button><button id="add-floor">+ Floor</button><button id="add-mat">+ Mat</button><button id="add-stairs">+ Stairs</button>
+      <button id="add-sector">+ Wall sector</button><button id="add-room">+ Room</button><button id="add-floor">+ Floor</button><button id="add-mat">+ Mat</button><button id="add-stairs">+ Stairs</button><button id="add-upper">+ Upper floor</button><button id="add-ramp">+ Ramp</button>
     </div>
 
     <h2>Tool</h2>
@@ -77,7 +77,8 @@
   <script>
     const NS = 'http://www.w3.org/2000/svg';
     const AREAS = { main: '#c49a7a', labyrinth: '#5ec8f2', welle: '#f27aa8', board: '#9bd46a', none: '#8b93a7' };
-    const KIND_COLOR = { floor: 0.12, room: 0.25, mat: 0.3, stairs: 0.15 };
+    const KIND_COLOR = { floor: 0.12, room: 0.25, mat: 0.3, stairs: 0.15, upper: 0.5, ramp: 0.35 };
+    const SECTOR_FONT = 20;
     const DRAFT_KEY = 'elys-map-draft';
     const svg = document.getElementById('svg');
     let map = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') || JSON.parse(JSON.stringify(GYM_MAP));
@@ -120,13 +121,13 @@
       let html = `<image href="${esc(bg.src)}" x="0" y="0" width="${bg.w}" height="${bg.h}" opacity="${document.getElementById('bg-op').value}"/>`;
       map.shapes.forEach((s, i) => {
         const pts = s.poly.map((p) => p.join(',')).join(' ');
-        const color = AREAS[s.area] || AREAS.none;
+        const color = s.kind === 'upper' || s.kind === 'ramp' ? '#222' : AREAS[s.area] || AREAS.none;
         const op = KIND_COLOR[s.kind] ?? 0.45;
         html += `<polygon class="shape ${s.kind} ${i === sel ? 'sel' : ''}" data-i="${i}" points="${pts}" fill="${color}" stroke="${color}" style="fill-opacity:${i === sel ? 0.7 : op}"/>`;
         if (s.kind === 'stairs' && s.poly.length === 4) html += stairSteps(s.poly);
         if (s.kind === 'sector' || s.kind === 'room') {
           const [x, y, rot = 0, size = 22] = s.label || [...centroid(s.poly), 0, 22];
-          html += `<text class="label" x="${x}" y="${y}" style="font-size:${size}px" transform="rotate(${rot} ${x} ${y})">${esc(s.kind === 'room' ? s.name.replace('map.', '') : s.name)}</text>`;
+          html += `<text class="label" x="${x}" y="${y}" style="font-size:${s.kind === 'sector' ? SECTOR_FONT : size}px" transform="rotate(${rot} ${x} ${y})">${esc(s.kind === 'room' ? s.name.replace('map.', '') : s.name)}</text>`;
         }
       });
       const s = map.shapes[sel];
@@ -156,13 +157,15 @@
       const areaOpts = Object.keys(AREAS).map((a) => `<option ${s.area === a ? 'selected' : ''}>${a}</option>`).join('');
       el.innerHTML = `<h2>Selected shape</h2>
         ${s.kind === 'sector' ? `<label><span>Name (shown in the app)</span><input data-prop="name" value="${esc(s.name)}"></label>
-          <label><span>Id (stored with the boulders \u2013 do not change for existing walls)</span><input data-prop="id" value="${esc(s.id)}" ${s.isNew ? '' : 'readonly'}></label>` : ''}
+          <label><span>Id (stored with the boulders \u2013 do not change for existing walls)</span><input data-prop="id" value="${esc(s.id)}" ${s.isNew ? '' : 'readonly'}></label>
+          <label><span><input type="checkbox" data-flag="noSet" ${s.noSet ? 'checked' : ''}> No boulders set here (board, labyrinth\u2026)</span></label>` : ''}
+        ${s.kind === 'ramp' ? '<p class="help">Ramps need exactly 4 points: side 1\u21922 is the bottom, side 3\u21924 the top.</p>' : ''}
         ${s.kind === 'room' ? `<label><span>Name (translation key or text)</span><input data-prop="name" value="${esc(s.name)}"></label>` : ''}
         ${s.kind === 'stairs' ? '<p class="help">Stairs need exactly 4 points; steps run from side 1\u21924 to side 2\u21923.</p>' : ''}
-        ${s.kind !== 'outline' && s.kind !== 'stairs' ? `<label><span>Color group</span><select data-prop="area">${areaOpts}</select></label>` : ''}
+        ${s.kind !== 'outline' && s.kind !== 'stairs' && s.kind !== 'upper' && s.kind !== 'ramp' ? `<label><span>Color group</span><select data-prop="area">${areaOpts}</select></label>` : ''}
         ${s.kind === 'sector' || s.kind === 'room' ? `<div class="row">
           <label style="flex:1"><span>Label angle</span><input type="number" data-label="2" value="${lab[2] || 0}" step="5"></label>
-          <label style="flex:1"><span>Label size</span><input type="number" data-label="3" value="${lab[3] || 22}" min="8" max="60"></label></div>` : ''}
+          ${s.kind === 'room' ? `<label style="flex:1"><span>Label size</span><input type="number" data-label="3" value="${lab[3] || 22}" min="8" max="60"></label>` : ''}</div>` : ''}
         <div class="row"><button id="del-last">Delete last point</button><button id="del-shape" class="danger">Delete shape</button></div>
         <p class="help">${s.poly.length} points</p>`;
     }
@@ -185,7 +188,7 @@
       const poly = [[cx - 40, cy - 40], [cx + 40, cy - 40], [cx + 40, cy + 40], [cx - 40, cy + 40]];
       const shape = kind === 'sector'
         ? { kind, id: 'newwall' + Date.now().toString(36).slice(-3), name: 'New wall', area: 'main', poly, isNew: true }
-        : kind === 'room' ? { kind, name: 'New room', area: 'none', poly } : kind === 'stairs' ? { kind, poly } : { kind, area: 'main', poly };
+        : kind === 'room' ? { kind, name: 'New room', area: 'none', poly } : ['stairs', 'upper', 'ramp'].includes(kind) ? { kind, poly } : { kind, area: 'main', poly };
       // Everything except walls goes below the walls so it never hides them.
       const firstSector = map.shapes.findIndex((s) => s.kind === 'sector');
       sel = kind === 'sector' || firstSector < 0 ? map.shapes.length : firstSector;
@@ -260,6 +263,9 @@ ${lines.join('\n')}
     });
     document.getElementById('props').addEventListener('change', (e) => {
       const s = map.shapes[sel];
+      if (e.target.dataset.flag) {
+        if (e.target.checked) s[e.target.dataset.flag] = true; else delete s[e.target.dataset.flag];
+      }
       if (e.target.dataset.prop === 'id') s.id = slug(e.target.value) || s.id;
       else if (e.target.dataset.prop) {
         s[e.target.dataset.prop] = e.target.value;
@@ -282,6 +288,8 @@ ${lines.join('\n')}
     document.getElementById('add-floor').onclick = () => addShape('floor');
     document.getElementById('add-mat').onclick = () => addShape('mat');
     document.getElementById('add-stairs').onclick = () => addShape('stairs');
+    document.getElementById('add-upper').onclick = () => addShape('upper');
+    document.getElementById('add-ramp').onclick = () => addShape('ramp');
     document.getElementById('bg-op').oninput = draw;
     document.getElementById('zoom').oninput = draw;
     document.getElementById('bg-file').onchange = (e) => {
