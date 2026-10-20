@@ -6,8 +6,9 @@
 -- Profiles and roles
 -- ---------------------------------------------------------------------------
 do $$ begin
-  create type public.user_role as enum ('climber', 'setter', 'admin');
+  create type public.user_role as enum ('climber', 'setter', 'admin', 'owner');
 exception when duplicate_object then null; end $$;
+alter type public.user_role add value if not exists 'owner';
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
@@ -26,17 +27,23 @@ language sql stable security definer set search_path = public as $$
   select role from public.profiles where id = auth.uid()
 $$;
 
+-- Roles are compared as text so this file also runs in the same transaction that adds 'owner'.
 create or replace function public.is_staff() returns boolean
 language sql stable security definer set search_path = public as $$
-  select coalesce(public.my_role() in ('setter', 'admin'), false)
+  select coalesce(public.my_role()::text in ('setter', 'admin', 'owner'), false)
 $$;
 
 create or replace function public.is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
-  select coalesce(public.my_role() = 'admin', false)
+  select coalesce(public.my_role()::text in ('admin', 'owner'), false)
 $$;
 
--- New account => profile. The bootstrap e-mail becomes the first administrator.
+create or replace function public.is_owner() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce(public.my_role()::text = 'owner', false)
+$$;
+
+-- New account => profile. The bootstrap e-mail becomes the owner.
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -44,7 +51,7 @@ begin
   values (
     new.id,
     left(coalesce(nullif(trim(new.raw_user_meta_data ->> 'name'), ''), split_part(new.email, '@', 1)), 30),
-    case when lower(new.email) = 'antoine.manyeres@gmail.com' then 'admin' else 'climber' end::public.user_role,
+    case when lower(new.email) = 'antoine.manyeres@gmail.com' then 'owner' else 'climber' end::public.user_role,
     coalesce(nullif(new.raw_user_meta_data ->> 'lang', ''), 'en'),
     case when (new.raw_user_meta_data ->> 'terms') = 'true' then now() end
   );
@@ -55,12 +62,19 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Only administrators can change roles (also blocks self-promotion through the API).
+-- Role rules for app users: admins switch climber <-> setter, only the owner grants or removes admin,
+-- and the owner role itself is only changed from the SQL editor (no JWT role there).
 create or replace function public.protect_role() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if new.role is distinct from old.role and not public.is_admin() then
-    raise exception 'Only administrators can change roles';
+  if new.role is distinct from old.role and coalesce(auth.role(), '') in ('anon', 'authenticated') then
+    if 'owner' in (old.role::text, new.role::text) then
+      raise exception 'The owner role cannot be changed from the app';
+    elsif 'admin' in (old.role::text, new.role::text) and not public.is_owner() then
+      raise exception 'Only the owner can grant or remove the admin role';
+    elsif not public.is_admin() then
+      raise exception 'Only administrators can change roles';
+    end if;
   end if;
   return new;
 end $$;
@@ -341,14 +355,11 @@ language sql stable security definer set search_path = public as $$
   order by p.name
 $$;
 
+-- The detailed role rules are enforced by the protect_role trigger.
 create or replace function public.set_role(p_user uuid, p_role public.user_role) returns void
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_admin() then raise exception 'Only administrators can change roles'; end if;
-  if p_role <> 'admin' and (select role from public.profiles where id = p_user) = 'admin'
-     and (select count(*) from public.profiles where role = 'admin') <= 1 then
-    raise exception 'The gym needs at least one administrator';
-  end if;
   update public.profiles set role = p_role where id = p_user;
 end $$;
 
@@ -357,9 +368,7 @@ create or replace function public.delete_my_account() returns void
 language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null then raise exception 'Not signed in'; end if;
-  if public.my_role() = 'admin' and (select count(*) from public.profiles where role = 'admin') <= 1 then
-    raise exception 'The gym needs at least one administrator';
-  end if;
+  if public.is_owner() then raise exception 'The owner account cannot be deleted'; end if;
   delete from auth.users where id = auth.uid();
 end $$;
 

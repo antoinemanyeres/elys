@@ -1,7 +1,7 @@
 // Demo backend for the mockup: an in-memory stand-in for Supabase, saved in this browser.
 // The mockup runs the real app code (../app/js) on top of it, so it always shows the latest features.
 (() => {
-  const STORE_KEY = 'elys-demo-v1';
+  const STORE_KEY = 'elys-demo-v2';
   const USER_KEY = 'elys-demo-user';
   const DAY = 864e5;
   const iso = (ms) => new Date(ms).toISOString();
@@ -27,6 +27,7 @@
     });
     const profiles = [
       profile('u_you', 'You', 'climber', { onboarded: false }),
+      profile('u_owner', 'Gym owner', 'owner'),
       profile('u_admin', 'Gym admin', 'admin'),
       profile('u_lena', 'Lena', 'setter'),
       profile('u_max', 'Max', 'setter'),
@@ -180,7 +181,9 @@
     constructor(table) { Object.assign(this, { table, filters: [], op: 'select', sorts: [], max: null, wantRows: false }); }
     select(cols, opts) { if (this.op === 'select') this.opts = opts || {}; else this.wantRows = true; return this; }
     eq(c, v) { this.filters.push((r) => r[c] === v); return this; }
+    neq(c, v) { this.filters.push((r) => r[c] !== v); return this; }
     in(c, vs) { this.filters.push((r) => vs.includes(r[c])); return this; }
+    lt(c, v) { this.filters.push((r) => r[c] !== null && r[c] < v); return this; }
     lte(c, v) { this.filters.push((r) => r[c] <= v); return this; }
     // Only the pattern used by the app: "col.is.null,col.gte.value".
     or(expr) {
@@ -293,8 +296,21 @@
         const me = currentUser();
         if (name === 'ranking') return { data: ranking(args.p_season), error: null };
         if (name === 'admin_list_users') return { data: T.profiles.map((p) => pick(p, ['id', 'name', 'email', 'role', 'created_at'])), error: null };
-        if (name === 'set_role') { byId('profiles', args.p_user).role = args.p_role; persist(); return { data: null, error: null }; }
+        // Same rules as the protect_role trigger in supabase/schema.sql.
+        if (name === 'set_role') {
+          const actor = byId('profiles', me).role;
+          const target = byId('profiles', args.p_user);
+          const touched = [target.role, args.p_role];
+          const error = touched.includes('owner') ? 'The owner role cannot be changed from the app'
+            : touched.includes('admin') && actor !== 'owner' ? 'Only the owner can grant or remove the admin role'
+              : !['admin', 'owner'].includes(actor) ? 'Only administrators can change roles' : null;
+          if (error) return { data: null, error: { message: error } };
+          target.role = args.p_role;
+          persist();
+          return { data: null, error: null };
+        }
         if (name === 'delete_my_account') {
+          if (byId('profiles', me).role === 'owner') return { data: null, error: { message: 'The owner account cannot be deleted' } };
           ['sends', 'votes', 'likes', 'projects', 'comments', 'videos'].forEach((t) => { T[t] = T[t].filter((r) => r.user_id !== me); });
           T.feedback.forEach((f) => { if (f.user_id === me) f.user_id = null; });
           T.profiles = T.profiles.filter((p) => p.id !== me);

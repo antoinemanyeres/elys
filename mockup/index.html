@@ -35,7 +35,7 @@
   <script>
     (() => {
       const select = document.getElementById('demo-user');
-      const roles = { climber: 'climber', setter: 'setter', admin: 'admin' };
+      const roles = { climber: 'climber', setter: 'setter', admin: 'admin', owner: 'owner' };
       const current = ElysDemo.currentUser();
       select.innerHTML = '<option value="">\u2014 signed out \u2014</option>' + ElysDemo.profiles()
         .map((p) => `<option value="${p.id}" ${p.id === current ? 'selected' : ''}>${p.name.replace(/[<>&"]/g, '')} (${roles[p.role]})</option>`).join('');

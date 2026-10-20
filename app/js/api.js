@@ -43,7 +43,7 @@ const Api = (() => {
     // ---------- Profile ----------
     profile: async (id) => check(await db.from('profiles').select('*').eq('id', id).single()),
     updateProfile: async (id, patch) => check(await db.from('profiles').update(patch).eq('id', id)),
-    staff: async () => check(await db.from('profiles').select('id, name, role').in('role', ['setter', 'admin']).order('name')),
+    staff: async () => check(await db.from('profiles').select('id, name, role').neq('role', 'climber').order('name')),
     deleteMyAccount: async () => check(await db.rpc('delete_my_account')),
     adminUsers: async () => check(await db.rpc('admin_list_users')),
     setRole: async (userId, role) => check(await db.rpc('set_role', { p_user: userId, p_role: role })),
@@ -58,6 +58,8 @@ const Api = (() => {
     retirePhoto: async (id) => check(await db.from('wall_photos').update({ retired: true }).eq('id', id)),
     activeBoulders: async () => fetchAll(() => db.from('boulders').select(BOULDER_COLS)
       .lte('opened_at', today()).or(`closes_at.is.null,closes_at.gte.${today()}`).order('created_at')),
+    archivedBoulders: async () => check(await db.from('boulders').select(BOULDER_COLS)
+      .lt('closes_at', today()).order('closes_at', { ascending: false }).limit(300)),
     boulder: async (id) => check(await db.from('boulders').select(BOULDER_COLS).eq('id', id).maybeSingle()),
     saveBoulder: async (id, fields) => (id
       ? check(await db.from('boulders').update(fields).eq('id', id).select(BOULDER_COLS).single())

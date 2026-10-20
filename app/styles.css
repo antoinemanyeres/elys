@@ -537,6 +537,9 @@ a { color: var(--accent); }
 .member { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .member select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color-scheme: var(--scheme); }
 .rank-head { margin: 14px; }
+.archive-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 14px 18px 0; }
+.archive-head .link { display: inline-flex; align-items: center; gap: 4px; padding: 0; }
+.archive-head .ico { width: 16px; height: 16px; }
 .rank-head .select-full { margin: 0; }
 .rank-head p { margin: 6px 2px 0; }
 

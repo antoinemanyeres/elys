@@ -16,7 +16,8 @@
   const newEditor = (sectorId = SET_SECTORS[0].id) => ({
     sectorId, part: currentPart(sectorId), editingId: null, color: 'green', subGrade: 1, tags: [], holds: [],
     holdType: 'start', mode: 'auto', tolerance: 30, circleR: 0.035, zoom: 1,
-    openedAt: today(), closesAt: isoDate(Date.now() + 60 * DAY), busy: false, notice: '', error: '',
+    openedAt: today(), closesAt: (nextReset(sectorId, currentPart(sectorId)) || {}).planned_on || isoDate(Date.now() + 60 * DAY),
+    busy: false, notice: '', error: '',
   });
 
   const ui = {
@@ -55,8 +56,9 @@
   const colorLabel = (id) => t('color.' + id);
   const tagLabel = (tag) => t('tag.' + tag);
   const me = () => store.profile;
-  const isSetter = () => !!me() && (me().role === 'setter' || me().role === 'admin');
-  const isAdmin = () => !!me() && me().role === 'admin';
+  const isSetter = () => !!me() && ['setter', 'admin', 'owner'].includes(me().role);
+  const isAdmin = () => !!me() && ['admin', 'owner'].includes(me().role);
+  const isOwner = () => !!me() && me().role === 'owner';
   const sectorOf = (id) => SECTORS.find((s) => s.id === id) || { id, name: id };
   const photoById = (id) => store.photos.find((p) => p.id === id);
   const photoOf = (b) => photoById(b.photoId);
@@ -507,13 +509,13 @@
     return s.flash ? `<span class="flash-mark">${icon('flash')}</span>` : `<span class="ok">${icon('check')}</span>`;
   }
 
-  function boulderRow(b) {
+  function boulderRow(b, action = 'quick-boulder', note = '') {
     const st = statsOf(b);
-    return `<div class="row ${ui.quickId === b.id ? 'selected' : ''}" data-action="quick-boulder" data-id="${b.id}">
+    return `<div class="row ${ui.quickId === b.id ? 'selected' : ''}" data-action="${action}" data-id="${b.id}">
       ${thumb(b)}
       <div class="mid">
-        <div class="line1">${gradePill(b.color, b.subGrade)}${isNew(b) ? `<span class="new">${t('new')}</span>` : ''}</div>
-        <div class="muted small">${esc(sectorLabel(b))}</div>
+        <div class="line1">${gradePill(b.color, b.subGrade)}${isNew(b) && !note ? `<span class="new">${t('new')}</span>` : ''}</div>
+        <div class="muted small">${esc(sectorLabel(b))}${note ? ` \u00b7 ${note}` : ''}</div>
       </div>
       <div class="side">
         <div class="pts">${points(b)}<small>${t('pts')}</small></div>
@@ -524,7 +526,37 @@
 
   const nextPlan = (sectorId) => store.plans.find((p) => p.sector_id === sectorId && !p.done && p.planned_on >= today());
 
+  // Next planned reset of a wall part (plans without a part cover the whole wall).
+  function nextReset(sectorId, part) {
+    return store.plans
+      .filter((p) => p.sector_id === sectorId && !p.done && p.planned_on > today() && (!p.part || part === 'new' || p.part === part))
+      .sort((a, b) => a.planned_on.localeCompare(b.planned_on))[0] || null;
+  }
+
+  function archiveView() {
+    const a = ui.archive;
+    if (!a.list) {
+      a.list = [];
+      a.loading = true;
+      Api.archivedBoulders().then(async (rows) => {
+        const list = rows.map(normBoulder);
+        list.forEach((b) => { if (!boulderById(b.id)) store.boulders.push(b); });
+        await refreshStats(list.map((b) => b.id));
+        Object.assign(ui.archive || {}, { list, loading: false });
+        render();
+      }).catch((e) => toast(errMsg(e), true));
+    }
+    const sectors = SET_SECTORS.filter((s) => a.list.some((b) => b.sectorId === s.id));
+    const list = a.list.filter((b) => !a.sector || b.sectorId === a.sector);
+    return `<div class="archive-head"><button class="link" data-action="close-archive">${icon('back')} ${t('ar.back')}</button><h2>${t('ar.title')}</h2></div>
+      <div class="rank-head"><select class="select-full" data-change="archive-sector"><option value="">${t('b.wholeGym')}</option>${sectors.map((s) =>
+        `<option value="${s.id}" ${s.id === a.sector ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
+      <div class="list">${list.map((b) => boulderRow(b, 'open-boulder', t('ar.removedOn', { date: fmtDate(b.closesAt) }))).join('')
+        || `<p class="empty">${a.loading ? '\u2026' : t('ar.none')}</p>`}</div>`;
+  }
+
   function bouldersView() {
+    if (ui.archive) return archiveView();
     const sector = ui.sectorId ? sectorOf(ui.sectorId) : null;
     let list = activeBoulders();
     if (sector) list = list.filter((b) => b.sectorId === sector.id);
@@ -558,7 +590,8 @@
           <div class="legend"><span><i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}</span><span><i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}</span></div></section>`
         : sector ? `<section class="card empty">${t('b.noPhoto')}</section>` : ''}
       <div class="list-head">${visible.length === 1 ? t('b.count1') : t('b.countN', { n: visible.length })}</div>
-      <div class="list">${visible.map(boulderRow).join('') || `<p class="empty">${t('b.noMatch')}</p>`}</div>
+      <div class="list">${visible.map((b) => boulderRow(b)).join('') || `<p class="empty">${t('b.noMatch')}</p>`}</div>
+      <button class="feedback-link" data-action="open-archive">${t('ar.link')}</button>
       ${feedbackLink()}`;
   }
 
@@ -648,8 +681,10 @@
     const st = statsOf(b);
     const d = ui.detail && ui.detail.id === b.id ? ui.detail : { loading: true, repeats: [], comments: [], videos: [] };
     const closesIn = b.closesAt ? daysUntil(b.closesAt) : null;
+    const removed = !isActive(b) && b.closesAt && b.closesAt < today();
     const mainActions = isSetter()
       ? `<button class="btn primary" data-action="edit-boulder" data-id="${b.id}">${t('m.edit')}</button>`
+      : removed ? ''
       : `<button class="btn ${send ? 'sent' : 'primary'}" data-action="toggle-send" data-id="${b.id}">${send ? `${icon('check')} ${t('m.sent')}` : t('m.markSent')}</button>
          <button class="btn flash-btn ${send && send.flash ? 'on' : ''}" data-action="toggle-flash" data-id="${b.id}">${icon('flash')} ${t(send && send.flash ? 'm.flashed' : 'm.flash')}</button>`;
 
@@ -664,6 +699,7 @@
             <div class="muted small">${esc(sectorLabel(b))} · ${t('m.setBy', { name: esc(b.setterName || '?') })}</div></div>
           <div class="pts big">${points(b)}<small>${t('pts')}</small></div>
         </div>
+        ${removed ? `<p class="notice">${t('ar.removedOn', { date: fmtDate(b.closesAt) })}</p>` : ''}
         <div class="stats">
           <div><b>${st.sends}</b><span>${t('m.repeats')}</span></div>
           <div><b>${st.likes}</b><span>${t('m.likes')}</span></div>
@@ -671,7 +707,7 @@
         </div>
         <div class="actions">${mainActions}
           <button class="btn icon-btn ${store.likes.has(b.id) ? 'liked' : ''}" data-action="toggle-like" data-id="${b.id}" aria-label="${t('m.like')}">${icon('heart')}</button>
-          ${isSetter() ? '' : projectBtn(b)}
+          ${isSetter() || removed ? '' : projectBtn(b)}
           <button class="btn icon-btn" data-action="share" data-id="${b.id}" aria-label="${t('sh.share')}">${icon('share')}</button>
         </div>
         ${ui.votePromptId === b.id ? `<section class="card">${votePrompt(b)}</section>` : ''}
@@ -683,7 +719,7 @@
             ? `<span>${gradePill(cons.color, cons.subGrade)} <small class="muted">${t('m.votes', { n: cons.count })}</small></span>`
             : `<span class="muted">${t('m.noVotes')}</span>`}</div>
           ${voteDistribution(b)}
-          ${isSetter() ? '' : send ? `<div class="vote-label">${t('m.yourVote')}</div>${voteBlock(b)}` : `<p class="muted small">${t('m.voteHint')}</p>`}
+          ${isSetter() || removed ? '' : send ? `<div class="vote-label">${t('m.yourVote')}</div>${voteBlock(b)}` : `<p class="muted small">${t('m.voteHint')}</p>`}
         </section>
 
         <section class="card">
@@ -889,12 +925,12 @@
     const head = `<span class="avatar xl">${esc(u.name[0])}</span><h2>${esc(u.name)}</h2>`;
     if (isSetter()) {
       const mine = store.boulders.filter((b) => b.setterId === u.id && isActive(b));
-      return `<section class="profile-hero">${head}<span class="badge-setter">${t(isAdmin() ? 'p.admin' : 'p.setter')}</span>
+      return `<section class="profile-hero">${head}<span class="badge-setter">${t(isOwner() ? 'p.owner' : isAdmin() ? 'p.admin' : 'p.setter')}</span>
           <div class="stats"><div><b>${mine.length}</b><span>${t('p.onWalls')}</span></div>
           <div><b>${mine.reduce((s, b) => s + statsOf(b).sends, 0)}</b><span>${t('p.totalSends')}</span></div></div></section>
         ${isAdmin() ? membersCard() : ''}
         <div class="list-head">${t('p.myBoulders')}</div>
-        <div class="list">${mine.map(boulderRow).join('')}</div>${settingsCard()}`;
+        <div class="list">${mine.map((b) => boulderRow(b)).join('')}</div>${settingsCard()}`;
     }
     ensureRanking().catch(() => {});
     const sum = mySummary();
@@ -912,9 +948,9 @@
       ${progressionChart(sum)}
       ${badgesCard(sum)}
       <div class="list-head">${t('pr.title')} (${projects.length})</div>
-      <div class="list">${projects.map(boulderRow).join('') || `<p class="empty">${t('pr.empty')}</p>`}</div>
+      <div class="list">${projects.map((b) => boulderRow(b)).join('') || `<p class="empty">${t('pr.empty')}</p>`}</div>
       <div class="list-head">${t('p.mySends')}</div>
-      <div class="list">${current.map(boulderRow).join('') || `<p class="empty">${t('p.noSends')}</p>`}</div>
+      <div class="list">${current.map((b) => boulderRow(b)).join('') || `<p class="empty">${t('p.noSends')}</p>`}</div>
       ${settingsCard()}`;
   }
 
@@ -926,7 +962,10 @@
     }
     const q = ui.admin.q.toLowerCase();
     const users = (ui.admin.users || []).filter((u) => !q || u.name.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
-    const roleOpt = (u, r) => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${t('role.' + r)}</option>`;
+    // Admins manage setters only; the owner also grants admin. The owner role itself is never editable here.
+    const choices = isOwner() ? ['climber', 'setter', 'admin'] : ['climber', 'setter'];
+    const editable = (u) => u.id !== store.uid && choices.includes(u.role);
+    const roleOpts = (u) => (editable(u) ? choices : [u.role]).map((r) => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${t('role.' + r)}</option>`).join('');
     return `<section class="card">
       <h3>${t('ad.title')}</h3>
       <p class="muted small">${t('ad.text')}</p>
@@ -935,7 +974,7 @@
       ${!ui.admin.users ? '<p class="muted small">\u2026</p>' : users.slice(0, 50).map((u) => `<div class="member">
         <span class="avatar sm">${esc(u.name[0])}</span>
         <div class="grow"><b>${esc(u.name)}</b><div class="muted small">${esc(u.email)}</div></div>
-        <select data-change="set-role" data-id="${u.id}" ${u.id === store.uid ? 'disabled' : ''}>${roleOpt(u, 'climber')}${roleOpt(u, 'setter')}${roleOpt(u, 'admin')}</select>
+        <select data-change="set-role" data-id="${u.id}" ${editable(u) ? '' : 'disabled'}>${roleOpts(u)}</select>
       </div>`).join('') || `<p class="muted small">${t('ad.none')}</p>`}
     </section>`;
   }
@@ -992,6 +1031,7 @@
       `<button class="${value === current ? 'on' : ''}" data-action="${action}" data-id="${value}">${label}</button>`;
     const starts = ed.holds.filter((h) => h.type === 'start').length;
     const tops = ed.holds.filter((h) => h.type === 'top').length;
+    const reset = nextReset(ed.sectorId, ed.part);
     const uploadButtons = `<div class="two upload-row">
           <label class="btn ghost">${t('s.camera')}
             <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
@@ -1046,6 +1086,7 @@
           <label class="field"><span>${t('s.opening')}</span><input type="date" value="${ed.openedAt}" data-change="ed-opened"></label>
           <label class="field"><span>${t('s.end')}</span><input type="date" value="${ed.closesAt}" data-change="ed-closes"></label>
         </div>
+        ${reset ? `<button class="chip ${ed.closesAt === reset.planned_on ? 'on' : ''}" data-action="ed-until-reset" data-id="${reset.planned_on}">${t('s.untilReset', { date: fmtDate(reset.planned_on) })}</button>` : ''}
         <div class="kv"><span>${t('s.holds')}</span><b>${t('s.holdsSummary', { n: ed.holds.length, s: starts, t: tops })}</b></div>
         <div class="kv"><span>${t('s.pointsPerSend')}</span><b>${pointsFor(ed.color, ed.subGrade)}</b></div>
         ${ed.error ? `<p class="notice">${t(ed.error)}</p>` : ''}
@@ -1309,7 +1350,7 @@
 
   const actions = {
     'tab': (id) => {
-      ui.tab = id; ui.boulderId = null; ui.quickId = null; ui.votePromptId = null;
+      ui.tab = id; ui.boulderId = null; ui.quickId = null; ui.votePromptId = null; ui.archive = null;
       if (id === 'ranking') ui.rankingKey = null;
       window.scrollTo(0, 0);
     },
@@ -1498,6 +1539,9 @@
     'ed-holdtype': (id) => { ui.editor.holdType = id; },
     'ed-mode': (id) => { ui.editor.mode = id; ui.editor.notice = ''; },
     'ed-advanced': () => { ui.edAdvanced = !ui.edAdvanced; },
+    'ed-until-reset': (id) => { ui.editor.closesAt = id; },
+    'open-archive': () => { ui.archive = { list: null, sector: '' }; ui.quickId = null; window.scrollTo(0, 0); },
+    'close-archive': () => { ui.archive = null; },
     'ed-undo': () => { ui.editor.holds.pop(); ui.editor.notice = ''; },
     'ed-clear': () => { ui.editor.holds = []; ui.editor.notice = ''; },
     'remove-hold': (id) => { ui.editor.holds.splice(Number(id), 1); },
@@ -1584,6 +1628,7 @@
     'tag': (v) => { ui.tag = v; },
     'rank-scope': (v) => { ui.rankScope = v; },
     'stats-sector': (v) => { ui.statsSector = v; },
+    'archive-sector': (v) => { ui.archive.sector = v; },
     'hide-ranking': async (v, el) => {
       await Api.updateProfile(store.uid, { hide_from_ranking: el.checked });
       me().hide_from_ranking = el.checked;
@@ -1782,14 +1827,15 @@
   }, { passive: false });
 
   // ---------- History (phone back button) ----------
-  const navState = () => ({ tab: ui.tab, boulderId: ui.boulderId, quickId: ui.quickId, feedback: !!ui.feedback, news: ui.news });
+  const navState = () => ({ tab: ui.tab, archive: !!ui.archive, boulderId: ui.boulderId, quickId: ui.quickId, feedback: !!ui.feedback, news: ui.news });
 
   function syncHistory(before) {
     const after = navState();
     const replace = ui.navReplace;
     ui.navReplace = false;
     if (JSON.stringify(after) === JSON.stringify(before)) return;
-    const closing = after.tab === before.tab && !after.boulderId && !after.quickId && !after.feedback && !after.news;
+    // Closing = same tab and everything still open after was already open before (e.g. modal closed over the archive).
+    const closing = after.tab === before.tab && Object.keys(after).every((k) => k === 'tab' || !after[k] || after[k] === before[k]);
     if (closing) history.back();
     else if (replace) history.replaceState(after, '');
     else history.pushState(after, '');
@@ -1802,6 +1848,7 @@
     ui.boulderId = s.boulderId;
     ui.quickId = s.quickId;
     if (!s.feedback) ui.feedback = null;
+    if (!s.archive) ui.archive = null;
     ui.news = !!s.news;
     ui.votePromptId = null;
     if (ui.boulderId && (!ui.detail || ui.detail.id !== ui.boulderId)) loadDetail(ui.boulderId).catch(() => {});
