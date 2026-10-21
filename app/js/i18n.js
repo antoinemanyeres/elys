@@ -61,7 +61,7 @@ const I18N = {
     'g.errEmpty': 'Write a few words first.',
 
     's.new': 'Set a new boulder', 's.editing': 'Editing', 's.cancel': 'Cancel', 's.wall': 'Wall',
-    's.addPhoto': 'Add a photo', 's.uploadNote': 'A new photo adds part {i} to this wall; the existing parts are kept.',
+    's.camera': 'Take a photo', 's.gallery': 'From gallery', 's.addPhoto': 'Add a photo', 's.uploadNote': 'A new photo adds part {i} to this wall; the existing parts are kept.',
     's.parts': 'Wall parts', 's.addPart': '+ Add part', 's.removePart': 'Delete this part',
     's.newPartHint': 'No photo of this wall yet: add one to start setting.',
     's.removeConfirm': 'Delete this part permanently? Its photos and all its boulders (with their sends, comments and videos) will be deleted. This cannot be undone.',
@@ -230,7 +230,7 @@ const I18N = {
     'g.errEmpty': 'Écrivez quelques mots d’abord.',
 
     's.new': 'Ouvrir un nouveau bloc', 's.editing': 'Modification', 's.cancel': 'Annuler', 's.wall': 'Mur',
-    's.addPhoto': 'Ajouter une photo', 's.uploadNote': 'Une nouvelle photo crée la partie {i} de ce mur ; les parties existantes sont conservées.',
+    's.camera': 'Prendre une photo', 's.gallery': 'Depuis la galerie', 's.addPhoto': 'Ajouter une photo', 's.uploadNote': 'Une nouvelle photo crée la partie {i} de ce mur ; les parties existantes sont conservées.',
     's.parts': 'Parties du mur', 's.addPart': '+ Ajouter une partie', 's.removePart': 'Supprimer cette partie',
     's.newPartHint': 'Pas encore de photo de ce mur : ajoutez-en une pour commencer à ouvrir.',
     's.removeConfirm': 'Supprimer définitivement cette partie ? Ses photos et tous ses blocs (avec réussites, commentaires et vidéos) seront supprimés. C’est irréversible.',
@@ -399,7 +399,7 @@ const I18N = {
     'g.errEmpty': 'Schreib zuerst ein paar Worte.',
 
     's.new': 'Neuen Boulder schrauben', 's.editing': 'Bearbeiten', 's.cancel': 'Abbrechen', 's.wall': 'Wand',
-    's.addPhoto': 'Foto hinzufügen', 's.uploadNote': 'Ein neues Foto erstellt Teil {i} dieser Wand; die bestehenden Teile bleiben erhalten.',
+    's.camera': 'Foto aufnehmen', 's.gallery': 'Aus der Galerie', 's.addPhoto': 'Foto hinzufügen', 's.uploadNote': 'Ein neues Foto erstellt Teil {i} dieser Wand; die bestehenden Teile bleiben erhalten.',
     's.parts': 'Wandteile', 's.addPart': '+ Teil hinzufügen', 's.removePart': 'Diesen Teil löschen',
     's.newPartHint': 'Noch kein Foto dieser Wand: füge eines hinzu, um zu schrauben.',
     's.removeConfirm': 'Diesen Teil endgültig löschen? Seine Fotos und alle seine Boulder (mit Begehungen, Kommentaren und Videos) werden gelöscht. Das lässt sich nicht rückgängig machen.',

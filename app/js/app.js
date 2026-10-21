@@ -1032,9 +1032,13 @@
     const starts = ed.holds.filter((h) => h.type === 'start').length;
     const tops = ed.holds.filter((h) => h.type === 'top').length;
     const reset = nextReset(ed.sectorId, ed.part);
-    // No capture attribute: phones then offer both the camera and the gallery.
-    const uploadButtons = `<label class="btn ghost block upload-btn">${t('s.addPhoto')}
-          <input type="file" accept="image/*" data-change="ed-photo" hidden></label>`;
+    const uploadButtons = ui.photoMenu
+      ? `<div class="two upload-row">
+          <label class="btn ghost">${t('s.camera')}
+            <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
+          <label class="btn ghost">${t('s.gallery')}
+            <input type="file" accept="image/*" data-change="ed-photo" hidden></label></div>`
+      : `<button class="btn ghost block upload-btn" data-action="photo-menu">${t('s.addPhoto')}</button>`;
     const partTabs = parts.length ? `<div class="seg parts">${parts.map((p, i) =>
       `<button class="${ed.part === p.part ? 'on' : ''}" data-action="ed-part" data-id="${p.part}" ${editing ? 'disabled' : ''}>${i + 1}/${parts.length}</button>`).join('')}</div>` : '';
     const uploadSection = editing ? '' : !parts.length
@@ -1572,6 +1576,7 @@
     'ed-holdtype': (id) => { ui.editor.holdType = id; },
     'ed-mode': (id) => { ui.editor.mode = id; ui.editor.notice = ''; },
     'ed-advanced': () => { ui.edAdvanced = !ui.edAdvanced; },
+    'photo-menu': () => { ui.photoMenu = true; },
     'ed-until-reset': (id) => { ui.editor.closesAt = id; },
     'open-archive': () => { ui.archive = { list: null, sector: '' }; ui.quickId = null; window.scrollTo(0, 0); },
     'close-archive': () => { ui.archive = null; },
@@ -1682,6 +1687,7 @@
     'ed-photo': (v, el) => {
       const file = el.files[0];
       el.value = '';
+      ui.photoMenu = false;
       addWallPhoto(file);
       return false;
     },
