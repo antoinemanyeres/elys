@@ -28,7 +28,7 @@ function sendPointsFor(color, subGrade, flash) {
 }
 
 const STYLE_TAGS = [
-  'Crimps', 'Slopers', 'Pinches', 'Pockets', 'Volumes', 'Dyno', 'Coordination', 'Balance',
+  'Crimps', 'Slopers', 'Pinches', 'Pockets', 'Jugs', 'Volumes', 'Dyno', 'Coordination', 'Balance', 'Technical',
   'Slab', 'Overhang', 'Compression', 'Heel hook', 'Toe hook', 'Mantle', 'Endurance',
 ];
 

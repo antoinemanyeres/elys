@@ -15,7 +15,7 @@ const I18N = {
     'tag.Crimps': 'Crimps', 'tag.Slopers': 'Slopers', 'tag.Pinches': 'Pinches', 'tag.Pockets': 'Pockets',
     'tag.Volumes': 'Volumes', 'tag.Dyno': 'Dyno', 'tag.Coordination': 'Coordination', 'tag.Balance': 'Balance',
     'tag.Slab': 'Slab', 'tag.Overhang': 'Overhang', 'tag.Compression': 'Compression', 'tag.Heel hook': 'Heel hook',
-    'tag.Toe hook': 'Toe hook', 'tag.Mantle': 'Mantle', 'tag.Endurance': 'Endurance',
+    'tag.Toe hook': 'Toe hook', 'tag.Mantle': 'Mantle', 'tag.Endurance': 'Endurance', 'tag.Jugs': 'Jugs', 'tag.Technical': 'Technical',
     'hold.start': 'Start', 'hold.hold': 'Hold', 'hold.top': 'Top', 'hold.startSymbol': 'S', 'hold.topSymbol': 'T',
     'pts': 'pts', 'new': 'NEW',
 
@@ -183,7 +183,7 @@ const I18N = {
     'tag.Crimps': 'Réglettes', 'tag.Slopers': 'Plats', 'tag.Pinches': 'Pinces', 'tag.Pockets': 'Trous',
     'tag.Volumes': 'Volumes', 'tag.Dyno': 'Jeté', 'tag.Coordination': 'Coordination', 'tag.Balance': 'Équilibre',
     'tag.Slab': 'Dalle', 'tag.Overhang': 'Dévers', 'tag.Compression': 'Compression', 'tag.Heel hook': 'Talon',
-    'tag.Toe hook': 'Contre-pointe', 'tag.Mantle': 'Rétablissement', 'tag.Endurance': 'Résistance',
+    'tag.Toe hook': 'Contre-pointe', 'tag.Mantle': 'Rétablissement', 'tag.Endurance': 'Résistance', 'tag.Jugs': 'Bacs', 'tag.Technical': 'Technique',
     'hold.start': 'Départ', 'hold.hold': 'Prise', 'hold.top': 'Top', 'hold.startSymbol': 'D', 'hold.topSymbol': 'T',
     'pts': 'pts', 'new': 'NOUVEAU',
 
@@ -351,7 +351,7 @@ const I18N = {
     'tag.Crimps': 'Leisten', 'tag.Slopers': 'Sloper', 'tag.Pinches': 'Zangen', 'tag.Pockets': 'Löcher',
     'tag.Volumes': 'Volumen', 'tag.Dyno': 'Dyno', 'tag.Coordination': 'Koordination', 'tag.Balance': 'Balance',
     'tag.Slab': 'Platte', 'tag.Overhang': 'Überhang', 'tag.Compression': 'Kompression', 'tag.Heel hook': 'Heel Hook',
-    'tag.Toe hook': 'Toe Hook', 'tag.Mantle': 'Mantle', 'tag.Endurance': 'Ausdauer',
+    'tag.Toe hook': 'Toe Hook', 'tag.Mantle': 'Mantle', 'tag.Endurance': 'Ausdauer', 'tag.Jugs': 'Henkel', 'tag.Technical': 'Technisch',
     'hold.start': 'Start', 'hold.hold': 'Griff', 'hold.top': 'Top', 'hold.startSymbol': 'S', 'hold.topSymbol': 'T',
     'pts': 'Pkt', 'new': 'NEU',
 
