@@ -1044,6 +1044,9 @@
       ? `<p class="muted small">${t('s.newPartHint', { i: parts.length + 1 })}</p>${uploadButtons}`
       : `${uploadButtons}<p class="muted small">${t('s.uploadNote')}</p>
         <button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>`;
+    const onSector = activeBoulders().filter((b) => b.sectorId === ed.sectorId).length;
+    const resetButton = !editing && onSector
+      ? `<button class="btn ghost block danger small" data-action="reset-wall">${t('s.resetWall', { n: onSector })}</button>` : '';
 
     return `
       <section class="card">
@@ -1052,6 +1055,7 @@
           `<option value="${s.id}" ${s.id === ed.sectorId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
         <div class="field"><span>${t('s.parts')}</span>${partTabs}</div>
         ${uploadSection}
+        ${resetButton}
       </section>
 
       ${photo ? `
@@ -1526,6 +1530,18 @@
       store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
       photo.retired = true;
       ui.editor = newEditor(ui.editor.sectorId);
+    },
+    // Whole wall reset by hand: archive every boulder of all its parts, photos are kept until re-shot.
+    'reset-wall': async () => {
+      const sectorId = ui.editor.sectorId;
+      const ids = activeBoulders().filter((b) => b.sectorId === sectorId).map((b) => b.id);
+      if (!ids.length || !confirm(t('s.resetConfirm', { n: ids.length, name: sectorOf(sectorId).name }))) return false;
+      const yesterday = isoDate(Date.now() - DAY);
+      await Api.archiveBoulders(ids, yesterday);
+      store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
+      ui.editor = { ...newEditor(sectorId), part: ui.editor.part, mode: ui.editor.mode };
+      ui.rankingKey = null;
+      toast(t('s.resetDone', { n: ids.length }));
     },
     'crop-cancel': () => { ui.cropper = null; },
     'crop-reset': () => { ui.cropper.rect = { x: 0, y: 0, w: 1, h: 1 }; },
