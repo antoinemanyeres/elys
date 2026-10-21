@@ -1037,15 +1037,13 @@
           <input type="file" accept="image/*" data-change="ed-photo" hidden></label>`;
     const partTabs = parts.length ? `<div class="seg parts">${parts.map((p, i) =>
       `<button class="${ed.part === p.part ? 'on' : ''}" data-action="ed-part" data-id="${p.part}" ${editing ? 'disabled' : ''}>${i + 1}/${parts.length}</button>`).join('')}</div>` : '';
-    const onPart = editorPhoto() ? activeBoulders().filter((b) => b.photoId === editorPhoto().id).length : 0;
-    const onSector = activeBoulders().filter((b) => b.sectorId === ed.sectorId).length;
     const uploadSection = editing ? '' : !parts.length
       ? `<p class="muted small">${t('s.newPartHint', { i: 1 })}</p>${uploadButtons}`
       : `${uploadButtons}<p class="muted small">${t('s.uploadNote', { i: parts.length + 1 })}</p>
         ${editorPhoto() ? `<button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>` : ''}
-        ${onPart ? `<button class="btn ghost block small" data-action="archive-part">${t('s.archivePart', { n: onPart })}</button>` : ''}`;
-    const resetButton = !editing && onSector
-      ? `<button class="btn ghost block small" data-action="reset-wall">${t('s.resetWall', { n: onSector })}</button>` : '';
+        ${editorPhoto() ? `<button class="btn ghost block small" data-action="archive-part">${t('s.archivePart')}</button>` : ''}`;
+    const resetButton = !editing && parts.length
+      ? `<button class="btn ghost block small" data-action="reset-wall">${t('s.resetWall')}</button>` : '';
 
     return `
       <section class="card">
@@ -1310,6 +1308,16 @@
       .finally(() => { ed.busy = false; render(); });
   }
 
+  // Archived photos stay in the database so removed boulders keep their picture in the archive.
+  async function archiveWithPhotos(ids, photos) {
+    const yesterday = isoDate(Date.now() - DAY);
+    if (ids.length) await Api.archiveBoulders(ids, yesterday);
+    for (const p of photos) await Api.retirePhoto(p.id);
+    store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
+    photos.forEach((p) => { p.retired = true; });
+    ui.rankingKey = null;
+  }
+
   async function toggleSend(id, flash) {
     const send = store.sends.get(id);
     const b = boulderById(id);
@@ -1536,24 +1544,20 @@
     },
     'archive-part': async () => {
       const photo = editorPhoto();
-      const ids = photo ? activeBoulders().filter((b) => b.photoId === photo.id).map((b) => b.id) : [];
-      if (!ids.length || !confirm(t('s.archivePartConfirm', { n: ids.length }))) return false;
-      const yesterday = isoDate(Date.now() - DAY);
-      await Api.archiveBoulders(ids, yesterday);
-      store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
-      ui.rankingKey = null;
+      if (!photo) return false;
+      const ids = activeBoulders().filter((b) => b.photoId === photo.id).map((b) => b.id);
+      if (!confirm(t('s.archivePartConfirm', { n: ids.length }))) return false;
+      await archiveWithPhotos(ids, [photo]);
+      ui.editor = newEditor(ui.editor.sectorId);
       toast(t('s.resetDone', { n: ids.length }));
     },
-    // Whole wall reset by hand: archive every boulder of all its parts, photos are kept until re-shot.
+    // Whole wall reset by hand: archive every boulder and photo of all its parts, the wall starts from zero.
     'reset-wall': async () => {
       const sectorId = ui.editor.sectorId;
       const ids = activeBoulders().filter((b) => b.sectorId === sectorId).map((b) => b.id);
-      if (!ids.length || !confirm(t('s.resetConfirm', { n: ids.length, name: sectorOf(sectorId).name }))) return false;
-      const yesterday = isoDate(Date.now() - DAY);
-      await Api.archiveBoulders(ids, yesterday);
-      store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
-      ui.editor = { ...newEditor(sectorId), part: ui.editor.part, mode: ui.editor.mode };
-      ui.rankingKey = null;
+      if (!confirm(t('s.resetConfirm', { n: ids.length, name: sectorOf(sectorId).name }))) return false;
+      await archiveWithPhotos(ids, sectorParts(sectorId));
+      ui.editor = { ...newEditor(sectorId), mode: ui.editor.mode };
       toast(t('s.resetDone', { n: ids.length }));
     },
     'crop-cancel': () => { ui.cropper = null; },
