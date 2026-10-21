@@ -1065,7 +1065,7 @@
         <div class="tool-row"><span class="label">${t('s.holdType')}</span><div class="seg">
           ${seg('ed-holdtype', 'start', ed.holdType, `<i class="lg-start">${t('hold.startSymbol')}</i>${t('hold.start')}`)}${seg('ed-holdtype', 'hold', ed.holdType, t('hold.hold'))}${seg('ed-holdtype', 'top', ed.holdType, `<i class="lg-top">${t('hold.topSymbol')}</i>${t('hold.top')}`)}</div></div>
         <div class="tool-row"><span class="label">${t('s.outline')}</span><div class="seg">
-          ${seg('ed-mode', 'auto', ed.mode, t('s.auto'))}${seg('ed-mode', 'circle', ed.mode, t('s.circle'))}</div></div>
+          ${seg('ed-mode', 'auto', ed.mode, t('s.auto'))}${seg('ed-mode', 'circle', ed.mode, t('s.circle'))}${seg('ed-mode', 'draw', ed.mode, t('s.draw'))}</div></div>
         ${ed.mode === 'circle'
           ? `<label class="tool-row"><span class="label">${t('s.circleSize')}</span><input type="range" min="0.015" max="0.1" step="0.005" value="${ed.circleR}" data-change="ed-circle"></label>`
           : ui.edAdvanced
@@ -1076,9 +1076,9 @@
       <div class="zoom-bar"><span class="muted small grow">${t('s.pinchHint')}</span>
         <button data-action="ed-undo" ${ed.holds.length ? '' : 'disabled'}>${t('s.undo')}</button>
         <button data-action="ed-clear" ${ed.holds.length ? '' : 'disabled'}>${t('s.clear')}</button></div>
-      <div class="zoombox ${ed.busy ? 'busy' : ''}"><div style="width:${ed.zoom * 100}%">
+      <div class="zoombox ${ed.busy ? 'busy' : ''} ${ed.mode === 'draw' ? 'draw-mode' : ''}"><div style="width:${ed.zoom * 100}%">
         ${wall(photo, onWall.filter((b) => b.id !== ed.editingId), { editor: true, draft: { holds: ed.holds, color: ed.color } })}</div></div>
-      <p class="hint">${ed.busy ? t('s.detecting') : t('s.tapHint')}</p>
+      <p class="hint">${ed.busy ? t('s.detecting') : t(ed.mode === 'draw' ? 's.drawHint' : 's.tapHint')}</p>
       ${ed.notice ? `<p class="notice">${t(ed.notice)}</p>` : ''}`
       : `<section class="card empty">${t('s.noPhoto')}</section>`}
 
@@ -1291,7 +1291,7 @@
   function placeHold(e, el) {
     const ed = ui.editor;
     const photo = editorPhoto();
-    if (!photo || ed.busy || Date.now() - pinchEndedAt < 400) return false;
+    if (!photo || ed.busy || ed.mode === 'draw' || Date.now() - pinchEndedAt < 400) return false;
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
@@ -1820,30 +1820,87 @@
   let pinch = null;
   let pinchEndedAt = 0;
 
-  // Zoom around a point (cx, cy) of the box, keeping the photo point under it in place.
-  function zoomEditorAt(box, z, cx, cy) {
+  // ---------- Freehand outline ("draw" mode) ----------
+  let drawing = null;
+
+  function drawPoint(e) {
+    const r = drawing.wall.getBoundingClientRect();
+    return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)];
+  }
+
+  document.addEventListener('pointerdown', (e) => {
+    const wallEl = e.target.closest && e.target.closest('.wall.editing');
+    if (!wallEl || !ui.editor || ui.editor.mode !== 'draw' || !e.isPrimary || pinch) return;
+    if (e.target.closest('.boulder.draft .hold')) return;
+    e.preventDefault();
+    wallEl.setPointerCapture(e.pointerId);
+    const svg = wallEl.querySelector('svg.overlay');
+    const H = svg.viewBox.baseVal.height;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    path.setAttribute('class', 'draw-path');
+    path.style.stroke = colorOf(ui.editor.color).hex;
+    svg.appendChild(path);
+    drawing = { wall: wallEl, path, H, pts: [] };
+    drawing.pts.push(drawPoint(e));
+  });
+
+  document.addEventListener('pointermove', (e) => {
+    if (!drawing) return;
+    const p = drawPoint(e);
+    const last = drawing.pts[drawing.pts.length - 1];
+    if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.004) return;
+    drawing.pts.push(p);
+    drawing.path.setAttribute('points', drawing.pts.map(([x, y]) => `${x * 1000},${y * drawing.H}`).join(' '));
+  });
+
+  function endDrawing() {
+    if (!drawing) return;
+    const { pts, path } = drawing;
+    drawing = null;
+    path.remove();
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    if (pts.length < 4 || Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) < 0.01) return;
+    ui.editor.holds.push({ type: ui.editor.holdType, pts: pts.map(([x, y]) => [+x.toFixed(4), +y.toFixed(4)]) });
+    ui.editor.error = '';
+    render();
+  }
+  document.addEventListener('pointerup', endDrawing);
+  document.addEventListener('pointercancel', () => { if (drawing) { drawing.path.remove(); drawing = null; } });
+
+  // Zoom around a point (cx, cy) of the box. (fx, fy) is the photo point (fraction of the content) to keep under it.
+  function zoomEditorAt(box, z, cx, cy, fx = (box.scrollLeft + cx) / box.scrollWidth, fy = (box.scrollTop + cy) / box.scrollHeight) {
     const inner = box.firstElementChild;
-    const fx = (box.scrollLeft + cx) / box.scrollWidth, fy = (box.scrollTop + cy) / box.scrollHeight;
     ui.editor.zoom = clamp(z, 1, MAX_ZOOM);
     inner.style.width = `${ui.editor.zoom * 100}%`;
     box.scrollLeft = fx * box.scrollWidth - cx;
     box.scrollTop = fy * box.scrollHeight - cy;
   }
 
+  const pinchCenter = (box, a, b) => {
+    const r = box.getBoundingClientRect();
+    return [(a.clientX + b.clientX) / 2 - r.left, (a.clientY + b.clientY) / 2 - r.top];
+  };
+
   document.addEventListener('touchstart', (e) => {
     const box = e.target.closest && e.target.closest('.zoombox');
     if (!box || !ui.editor || e.touches.length !== 2) return;
+    drawing = null;
+    const svg = box.querySelector('.draw-path');
+    if (svg) svg.remove();
     const [a, b] = e.touches;
-    pinch = { box, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom: ui.editor.zoom };
+    const [cx, cy] = pinchCenter(box, a, b);
+    pinch = { box, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom: ui.editor.zoom,
+      fx: (box.scrollLeft + cx) / box.scrollWidth, fy: (box.scrollTop + cy) / box.scrollHeight };
   }, { passive: true });
 
+  // Moving the two fingers also pans, since the photo point under them is kept.
   document.addEventListener('touchmove', (e) => {
     if (!pinch || e.touches.length !== 2) return;
     e.preventDefault();
     const [a, b] = e.touches;
-    const r = pinch.box.getBoundingClientRect();
     const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    zoomEditorAt(pinch.box, pinch.zoom * d / pinch.d, (a.clientX + b.clientX) / 2 - r.left, (a.clientY + b.clientY) / 2 - r.top);
+    const [cx, cy] = pinchCenter(pinch.box, a, b);
+    zoomEditorAt(pinch.box, pinch.zoom * d / pinch.d, cx, cy, pinch.fx, pinch.fy);
   }, { passive: false });
 
   document.addEventListener('touchend', (e) => {
