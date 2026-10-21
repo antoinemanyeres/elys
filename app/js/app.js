@@ -699,7 +699,7 @@
             <div class="muted small">${esc(sectorLabel(b))} · ${t('m.setBy', { name: esc(b.setterName || '?') })}</div></div>
           <div class="pts big">${points(b)}<small>${t('pts')}</small></div>
         </div>
-        ${removed ? `<p class="notice">${t('ar.removedOn', { date: fmtDate(b.closesAt) })}</p>` : ''}
+        ${removed ? `<p class="removed-note">${t('ar.removedOn', { date: fmtDate(b.closesAt) })}</p>` : ''}
         <div class="stats">
           <div><b>${st.sends}</b><span>${t('m.repeats')}</span></div>
           <div><b>${st.likes}</b><span>${t('m.likes')}</span></div>
@@ -1032,20 +1032,17 @@
     const starts = ed.holds.filter((h) => h.type === 'start').length;
     const tops = ed.holds.filter((h) => h.type === 'top').length;
     const reset = nextReset(ed.sectorId, ed.part);
-    const uploadButtons = `<div class="two upload-row">
-          <label class="btn ghost">${t('s.camera')}
-            <input type="file" accept="image/*" capture="environment" data-change="ed-photo" hidden></label>
-          <label class="btn ghost">${t('s.gallery')}
-            <input type="file" accept="image/*" data-change="ed-photo" hidden></label></div>`;
-    const partTabs = `<div class="seg parts">${parts.map((p, i) =>
-      `<button class="${ed.part === p.part ? 'on' : ''}" data-action="ed-part" data-id="${p.part}" ${editing ? 'disabled' : ''}>${i + 1}/${parts.length}</button>`).join('')}
-      ${editing ? '' : `<button class="${ed.part === 'new' ? 'on' : ''}" data-action="ed-part" data-id="new">${t('s.addPart')}</button>`}</div>`;
+    // No capture attribute: phones then offer both the camera and the gallery.
+    const uploadButtons = `<label class="btn ghost block upload-btn">${t('s.addPhoto')}
+          <input type="file" accept="image/*" data-change="ed-photo" hidden></label>`;
+    const partTabs = parts.length ? `<div class="seg parts">${parts.map((p, i) =>
+      `<button class="${ed.part === p.part ? 'on' : ''}" data-action="ed-part" data-id="${p.part}" ${editing ? 'disabled' : ''}>${i + 1}/${parts.length}</button>`).join('')}</div>` : '';
     const onPart = editorPhoto() ? activeBoulders().filter((b) => b.photoId === editorPhoto().id).length : 0;
     const onSector = activeBoulders().filter((b) => b.sectorId === ed.sectorId).length;
-    const uploadSection = editing ? '' : ed.part === 'new'
-      ? `<p class="muted small">${t('s.newPartHint', { i: parts.length + 1 })}</p>${uploadButtons}`
-      : `${uploadButtons}<p class="muted small">${t('s.uploadNote')}</p>
-        <button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>
+    const uploadSection = editing ? '' : !parts.length
+      ? `<p class="muted small">${t('s.newPartHint', { i: 1 })}</p>${uploadButtons}`
+      : `${uploadButtons}<p class="muted small">${t('s.uploadNote', { i: parts.length + 1 })}</p>
+        ${editorPhoto() ? `<button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>` : ''}
         ${onPart ? `<button class="btn ghost block small" data-action="archive-part">${t('s.archivePart', { n: onPart })}</button>` : ''}`;
     const resetButton = !editing && onSector
       ? `<button class="btn ghost block small" data-action="reset-wall">${t('s.resetWall', { n: onSector })}</button>` : '';
@@ -1055,7 +1052,7 @@
         ${editing ? `<div class="editing-banner">${t('s.editing')} ${gradePill(editing.color, editing.subGrade)}<button class="link" data-action="cancel-edit">${t('s.cancel')}</button></div>` : `<h3>${t('s.new')}</h3>`}
         <label class="field"><span>${t('s.wall')}</span><select data-change="ed-sector" ${editing ? 'disabled' : ''}>${SET_SECTORS.map((s) =>
           `<option value="${s.id}" ${s.id === ed.sectorId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
-        <div class="field"><span>${t('s.parts')}</span>${partTabs}</div>
+        ${partTabs ? `<div class="field"><span>${t('s.parts')}</span>${partTabs}</div>` : ''}
         ${uploadSection}
         ${resetButton}
       </section>
@@ -1757,19 +1754,8 @@
     try {
       const ed = ui.editor;
       const sectorId = ed.sectorId;
-      let part;
-      if (ed.part === 'new') {
-        part = Math.max(0, ...sectorParts(sectorId).map((p) => p.part)) + 1;
-      } else {
-        part = ed.part;
-        const old = editorPhoto();
-        if (old) {
-          const ids = store.boulders.filter((b) => b.photoId === old.id && isActive(b)).map((b) => b.id);
-          const yesterday = isoDate(Date.now() - DAY);
-          if (ids.length) await Api.archiveBoulders(ids, yesterday);
-          store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
-        }
-      }
+      // A new photo always becomes a new part; existing parts are only changed by delete / archive.
+      const part = Math.max(0, ...sectorParts(sectorId).map((p) => p.part)) + 1;
       const row = await Api.addPhoto(sectorId, part, blob, canvas.width, canvas.height, store.uid);
       store.photos.push(normPhoto(row));
       ui.cropper = null;
