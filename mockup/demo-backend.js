@@ -232,6 +232,12 @@
         const gone = T[this.table].filter(match);
         T[this.table] = T[this.table].filter((r) => !match(r));
         if (this.table === 'boulders') cascadeDeleteBoulders(gone.map((r) => r.id));
+        if (this.table === 'wall_photos') {
+          const ids = gone.map((r) => r.id);
+          const boulders = T.boulders.filter((b) => ids.includes(b.photo_id)).map((b) => b.id);
+          T.boulders = T.boulders.filter((b) => !boulders.includes(b.id));
+          cascadeDeleteBoulders(boulders);
+        }
         persist();
         return { data: null, error: null };
       }
@@ -327,6 +333,7 @@
             reader.onload = () => { T.uploads[path] = reader.result; persist(); resolve({ data: { path }, error: null }); };
             reader.readAsDataURL(blob);
           }),
+          remove: async (paths) => { paths.forEach((p) => delete T.uploads[p]); persist(); return { data: null, error: null }; },
         }),
       },
       auth: {

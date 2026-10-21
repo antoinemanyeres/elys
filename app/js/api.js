@@ -56,6 +56,11 @@ const Api = (() => {
       return check(await db.from('wall_photos').insert({ sector_id: sectorId, part, path, w, h, created_by: userId }).select().single());
     },
     retirePhoto: async (id) => check(await db.from('wall_photos').update({ retired: true }).eq('id', id)),
+    // Deleting the rows cascades to their boulders and everything attached to them.
+    deletePhotos: async (photos) => {
+      check(await db.from('wall_photos').delete().in('id', photos.map((p) => p.id)));
+      await db.storage.from('walls').remove(photos.map((p) => p.path));
+    },
     activeBoulders: async () => fetchAll(() => db.from('boulders').select(BOULDER_COLS)
       .lte('opened_at', today()).or(`closes_at.is.null,closes_at.gte.${today()}`).order('created_at')),
     archivedBoulders: async () => check(await db.from('boulders').select(BOULDER_COLS)

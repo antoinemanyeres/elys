@@ -1040,13 +1040,15 @@
     const partTabs = `<div class="seg parts">${parts.map((p, i) =>
       `<button class="${ed.part === p.part ? 'on' : ''}" data-action="ed-part" data-id="${p.part}" ${editing ? 'disabled' : ''}>${i + 1}/${parts.length}</button>`).join('')}
       ${editing ? '' : `<button class="${ed.part === 'new' ? 'on' : ''}" data-action="ed-part" data-id="new">${t('s.addPart')}</button>`}</div>`;
+    const onPart = editorPhoto() ? activeBoulders().filter((b) => b.photoId === editorPhoto().id).length : 0;
+    const onSector = activeBoulders().filter((b) => b.sectorId === ed.sectorId).length;
     const uploadSection = editing ? '' : ed.part === 'new'
       ? `<p class="muted small">${t('s.newPartHint', { i: parts.length + 1 })}</p>${uploadButtons}`
       : `${uploadButtons}<p class="muted small">${t('s.uploadNote')}</p>
-        <button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>`;
-    const onSector = activeBoulders().filter((b) => b.sectorId === ed.sectorId).length;
+        <button class="btn ghost block danger small" data-action="remove-part">${t('s.removePart')}</button>
+        ${onPart ? `<button class="btn ghost block small" data-action="archive-part">${t('s.archivePart', { n: onPart })}</button>` : ''}`;
     const resetButton = !editing && onSector
-      ? `<button class="btn ghost block danger small" data-action="reset-wall">${t('s.resetWall', { n: onSector })}</button>` : '';
+      ? `<button class="btn ghost block small" data-action="reset-wall">${t('s.resetWall', { n: onSector })}</button>` : '';
 
     return `
       <section class="card">
@@ -1520,16 +1522,30 @@
       ui.editor = { ...newEditor(ed.sectorId), part: id === 'new' ? 'new' : Number(id), mode: ed.mode, zoom: ed.zoom,
         tolerance: ed.tolerance, circleR: ed.circleR, color: ed.color, subGrade: ed.subGrade, tags: ed.tags };
     },
+    // Permanent: every photo of this part and all their boulders (with sends, comments, videos) are deleted.
     'remove-part': async () => {
       const photo = editorPhoto();
       if (!photo || !confirm(t('s.removeConfirm'))) return false;
-      const ids = store.boulders.filter((b) => b.photoId === photo.id && isActive(b)).map((b) => b.id);
-      const yesterday = isoDate(Date.now() - DAY);
-      if (ids.length) await Api.archiveBoulders(ids, yesterday);
-      await Api.retirePhoto(photo.id);
-      store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
-      photo.retired = true;
+      const photos = store.photos.filter((p) => p.sectorId === photo.sectorId && p.part === photo.part);
+      const photoIds = photos.map((p) => p.id);
+      await Api.deletePhotos(photos);
+      const gone = new Set(store.boulders.filter((b) => photoIds.includes(b.photoId)).map((b) => b.id));
+      store.photos = store.photos.filter((p) => !photoIds.includes(p.id));
+      store.boulders = store.boulders.filter((b) => !gone.has(b.id));
+      gone.forEach((id) => { store.sends.delete(id); store.votes.delete(id); store.likes.delete(id); store.projects.delete(id); });
+      ui.rankingKey = null;
       ui.editor = newEditor(ui.editor.sectorId);
+      toast(t('s.removed'));
+    },
+    'archive-part': async () => {
+      const photo = editorPhoto();
+      const ids = photo ? activeBoulders().filter((b) => b.photoId === photo.id).map((b) => b.id) : [];
+      if (!ids.length || !confirm(t('s.archivePartConfirm', { n: ids.length }))) return false;
+      const yesterday = isoDate(Date.now() - DAY);
+      await Api.archiveBoulders(ids, yesterday);
+      store.boulders.forEach((b) => { if (ids.includes(b.id)) b.closesAt = yesterday; });
+      ui.rankingKey = null;
+      toast(t('s.resetDone', { n: ids.length }));
     },
     // Whole wall reset by hand: archive every boulder of all its parts, photos are kept until re-shot.
     'reset-wall': async () => {
